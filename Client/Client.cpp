@@ -10,9 +10,9 @@
 int main(int argc, char const *argv[])
 {
     char message[1024];
+    char server_message[1024];
     int sock = 0, valread;
     struct sockaddr_in serv_addr;
-    char *hello = "Hello from client";
     char buffer[1024] = {0};
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
@@ -35,6 +35,10 @@ int main(int argc, char const *argv[])
         printf("\nConnection Failed \n");
         return -1;
     }
+
+    valread = read(sock, server_message, 1024);
+    std::cout << server_message;
+
     while(1)
     {
       std::cin >> message;
