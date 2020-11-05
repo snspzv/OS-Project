@@ -15,6 +15,7 @@
 
 std::mutex mtx;
 std::vector<User> user_vector;
+std::vector<User> *p_vector = &user_vector;
 
 void manageConnection(void* arg)
 {
@@ -23,37 +24,41 @@ void manageConnection(void* arg)
     int valread;
     User* p_user;
     char buffer[BUFFER_SIZE] = { 0 };
-    char from_server[BUFFER_SIZE] = "Enter the name of the user you'd like to message: ";
-    char client_admin[BUFFER_SIZE];
-    
+    char temp_name[BUFFER_SIZE] = "Wobbe";
+
     if (user_count < MAX_THREADS)
     {
         //To do: place locks around access to vector and assigning pointer
-        user_vector.push_back(User(new_socket));
+        user_vector.push_back(User(new_socket, temp_name));
         p_user = &user_vector.back();
         //Lock ends here
 
-        
+
         user_count++;
     }
 
-    send(new_socket, from_server, strlen(from_server), 0);
-    read(new_socket, client_admin, BUFFER_SIZE);
-    std::cout << client_admin;
+    while(!(p_user->select_user(new_socket, user_vector)));
+    {
+      //Waits until User to message is found
+    }
+
+    //std::cout << client_admin;
     //Process contents of from_client here
     //select user to talk to if exists
     //request again if not
     //Should be done in User class function
+    //Current user is finding if the person they want to talk to is connected to the server
+
 
     while (1)
     {
         std::cout << new_socket << std::endl;
-        
+
         valread = read(new_socket, buffer, BUFFER_SIZE);
         if (buffer)
             send(new_socket, buffer, strlen(buffer), 0);
-       
+
     }
-    
-    
+
+
 }
