@@ -44,3 +44,8 @@ bool User::select_user(int new_socket, std::vector<User> p_vector)
 	send(new_socket, error_mess, strlen(error_mess), 0);
 	return false;
 }
+
+char* User::get_name()
+{
+	return _name;
+}
