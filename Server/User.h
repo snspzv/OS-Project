@@ -10,7 +10,8 @@ class User {
 
 	public:
 		User();
-		User(int socket_fd, char * name);
+		User(int socket_fd);
 		bool select_user(int new_socket, std::vector<User> p_vector);
+		void enter_name(int new_socket, std::vector<User> p_vector);
 		char* get_name();
 };

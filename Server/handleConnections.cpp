@@ -24,15 +24,13 @@ void manageConnection(void* arg)
     int valread;
     User* p_user;
     char buffer[BUFFER_SIZE] = { 0 };
-    char temp_name[BUFFER_SIZE] = "Wobbe";
 
     if (user_count < MAX_THREADS)
     {
-        //Cade: function for user to enter their name, must be a unique name
-
         //To do: place locks around access to vector and assigning pointer
-        user_vector.push_back(User(client_fd, temp_name));
+        user_vector.push_back(User(client_fd));
         p_user = &user_vector.back();
+        p_user->enter_name(client_fd, user_vector);
         //Lock ends here
 
 
@@ -52,7 +50,7 @@ void manageConnection(void* arg)
 
     while (1)
     {
-        
+
 
         valread = read(client_fd, buffer, BUFFER_SIZE);
         if (buffer)
