@@ -60,3 +60,36 @@ void manageConnection(void* arg)
 
 
 }
+
+int wait_recv_or_send(std::vector<int> fds)
+{
+    int max_fd = 0;
+    // timeout structure passed into select
+    struct timeval tv;
+    //Timeout after 2 seconds
+    tv.tv_sec = 5;
+    
+    // fd_set passed into select
+    fd_set fds_to_watch;
+    
+
+    // Zero out the fds_to_watch
+    FD_ZERO(&fds_to_watch);
+    
+    //Add fds to fds_to_watch
+    for (auto& fd : fds)
+    {
+        FD_SET(fd, &fds_to_watch);
+        
+        if (fd > max_fd)
+        {
+            max_fd = fd;
+        }
+    }
+    
+    
+    //wait on fds in fds_to_watch
+    return select(max_fd + 1, &fds_to_watch, NULL, NULL, &tv);
+    // return 0 if STDIN is not ready to be read.
+    //return FD_ISSET(client_fd, &fds);
+}

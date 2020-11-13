@@ -13,6 +13,8 @@ User::User(int socket_fd)
 {
 	_uid = socket_fd; //each new socket will have unique file descriptor
 	_connected_uid = 0;
+	strncpy(_name, name, strlen(name));
+	_connection_requested = false;
 }
 
 //constructor for when array is first declared

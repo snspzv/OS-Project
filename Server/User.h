@@ -7,6 +7,7 @@ class User {
 		int _uid;
 		int _connected_uid;
 		char _name[1024];
+		bool _connection_requested;
 
 	public:
 		User();

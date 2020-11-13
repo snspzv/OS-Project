@@ -37,12 +37,13 @@ int main(int argc, char const *argv[])
         return -1;
     }
 
+    //Asking for name
     read(sock, server_message, 1024);
-    std::cout << server_message;
+    printf("%s\n", server_message);
 
     while(1)
     {
-      std::cin >> message;
+      //std::cin >> message;
       hello = &message[0];
       send(sock , hello , strlen(hello) , 0 );
       printf("Message sent\n");
