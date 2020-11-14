@@ -33,7 +33,7 @@ void manageConnection(void* arg)
     //fds can now be used with select, currently only checking client_fd
     init_fd_set(fds_vect, SELECT_TIMEOUT_S, SELECT_TIMEOUT_NS, fds, tv);
     fds_vect.clear();
-   
+
     if (user_count < MAX_THREADS)
     {
         //To do: place locks around access to vector and assigning pointer
@@ -47,7 +47,7 @@ void manageConnection(void* arg)
     }
 
     printf("%s is connected, client_fd id %d\n", p_user->get_name(), client_fd);
-
+    sleep(3);
     //Asking for messaging partner
     while(!(p_user->select_user(client_fd, user_vector, fds, tv)));
     {
@@ -78,28 +78,28 @@ int wait_recv_or_send(std::vector<int> fds)
     int select_ret;
     // timeout structure passed into select
     struct timeval tv;
-    
+
     //Timeout after 5 seconds
     tv.tv_sec = 5;
-    
+
     // fd_set passed into select
     fd_set fds_to_watch;
-    
+
     // Zero out the fds_to_watch
     FD_ZERO(&fds_to_watch);
-    
+
     //Add fds to fds_to_watch
     for (auto& fd : fds)
     {
         FD_SET(fd, &fds_to_watch);
-        
+
         if (fd > max_fd)
         {
             max_fd = fd;
         }
     }
-    
-    
+
+
     //wait on fds in fds_to_watch
     do
     {

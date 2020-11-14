@@ -48,7 +48,7 @@ int main(int argc, char const *argv[])
     fds_vect.push_back(sock);
     fds_vect.push_back(STDIN_FILENO);
     init_fd_set(fds_vect, SELECT_TIMEOUT_S, SELECT_TIMEOUT_NS, fds, tv);
-    
+
     //Wait until server gives ok on username
     do
     {
@@ -59,18 +59,20 @@ int main(int argc, char const *argv[])
         //Receive feedback on uniqueness of username
         receive(sock, server_message, sizeof server_message);
         printf("%s\n", server_message);
-        
+
     } while (server_message[0] == 'T');
-    
-    
+
+
     //Send user to talk to OR wait for other user to connect
     receive(sock);
     send(sock);
-   
+
+    receive(sock);
+
 
     while(1)
     {
-      
+
     }
 
 
