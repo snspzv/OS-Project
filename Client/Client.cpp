@@ -5,7 +5,11 @@
 #include <string.h>
 #include <string>
 #include <iostream>
-#define PORT 8080
+#include <vector>
+#include "wait.h"
+#include "sendRecv.h"
+#include "Constants.h"
+
 
 int main(int argc, char const *argv[])
 {
@@ -14,7 +18,11 @@ int main(int argc, char const *argv[])
     int sock = 0, valread;
     struct sockaddr_in serv_addr;
     char buffer[1024] = {0};
-    char *hello;
+    int max_fd;
+    std::vector<int> fds_vect;
+    fd_set fds;
+    struct timespec tv;
+
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
         printf("\n Socket creation error \n");
@@ -37,18 +45,32 @@ int main(int argc, char const *argv[])
         return -1;
     }
 
-    //Asking for name
-    read(sock, server_message, 1024);
-    printf("%s\n", server_message);
+    fds_vect.push_back(sock);
+    fds_vect.push_back(STDIN_FILENO);
+    init_fd_set(fds_vect, SELECT_TIMEOUT_S, SELECT_TIMEOUT_NS, fds, tv);
+    
+    //Wait until server gives ok on username
+    do
+    {
+        //Asking for username
+        receive(sock);
+        //Sending username
+        send(sock);
+        //Receive feedback on uniqueness of username
+        receive(sock, server_message, sizeof server_message);
+        printf("%s\n", server_message);
+        
+    } while (server_message[0] == 'T');
+    
+    
+    //Send user to talk to OR wait for other user to connect
+    receive(sock);
+    send(sock);
+   
 
     while(1)
     {
-      //std::cin >> message;
-      hello = &message[0];
-      send(sock , hello , strlen(hello) , 0 );
-      printf("Message sent\n");
-      read( sock , buffer, 1024);
-      printf("%s\n",buffer );
+      
     }
 
 

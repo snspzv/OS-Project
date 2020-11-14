@@ -6,6 +6,7 @@
 #include <string.h>
 #include <thread>
 #include <sys/time.h>
+#include <sys/select.h>
 #include "handleConnections.h"
 #include "Constants.h"
 
@@ -16,7 +17,6 @@ int main(int argc, char const *argv[])
     int opt = 1;
     int addrlen = sizeof(address);
     char buffer[1024] = {0};
-    char *hello = "Hello from server";
     fd_set readfds; // set of socket descriptors
 
     // Creating socket file descriptor using IP and TCP (sock_stream with 3rd option 0 defaults to TCP)

@@ -1,7 +1,7 @@
 # OS-Project
 
 Server compilation commands:
-	g++ -std=c++14 -pthread  *.cpp -o server
+	g++ -std=c++14 -pthread -I../Shared *.cpp -o server -L../Shared -lshare
 
 Client compilation commands:
-	g++ -std=c++14 *.cpp -o client
+	g++ -std=c++14 -I../Shared  *.cpp  -o client -L../Shared -lshare

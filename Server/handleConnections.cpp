@@ -1,6 +1,7 @@
 #include "handleConnections.h"
 #include "User.h"
 #include "Constants.h"
+#include "wait.h"
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/socket.h>
@@ -24,7 +25,15 @@ void manageConnection(void* arg)
     int valread;
     User* p_user;
     char buffer[BUFFER_SIZE] = { 0 };
+    fd_set fds;
+    struct timespec tv;
+    std::vector<int> fds_vect;
 
+    fds_vect.push_back(client_fd);
+    //fds can now be used with select, currently only checking client_fd
+    init_fd_set(fds_vect, SELECT_TIMEOUT_S, SELECT_TIMEOUT_NS, fds, tv);
+    fds_vect.clear();
+   
     if (user_count < MAX_THREADS)
     {
         //To do: place locks around access to vector and assigning pointer
@@ -40,7 +49,7 @@ void manageConnection(void* arg)
     printf("%s is connected, client_fd id %d\n", p_user->get_name(), client_fd);
 
     //Asking for messaging partner
-    while(!(p_user->select_user(client_fd, user_vector)));
+    while(!(p_user->select_user(client_fd, user_vector, fds, tv)));
     {
       //Waits until User to message is found
     }
@@ -61,18 +70,21 @@ void manageConnection(void* arg)
 
 }
 
+
+
 int wait_recv_or_send(std::vector<int> fds)
 {
     int max_fd = 0;
+    int select_ret;
     // timeout structure passed into select
     struct timeval tv;
-    //Timeout after 2 seconds
+    
+    //Timeout after 5 seconds
     tv.tv_sec = 5;
     
     // fd_set passed into select
     fd_set fds_to_watch;
     
-
     // Zero out the fds_to_watch
     FD_ZERO(&fds_to_watch);
     
@@ -89,7 +101,12 @@ int wait_recv_or_send(std::vector<int> fds)
     
     
     //wait on fds in fds_to_watch
-    return select(max_fd + 1, &fds_to_watch, NULL, NULL, &tv);
-    // return 0 if STDIN is not ready to be read.
-    //return FD_ISSET(client_fd, &fds);
+    do
+    {
+        select_ret = select(max_fd + 1, &fds_to_watch, NULL, NULL, &tv);
+    } while (select_ret == 0);
+
+        // return 0 if STDIN is not ready to be read.
+        //return FD_ISSET(client_fd, &fds);
+        return 1;
 }
