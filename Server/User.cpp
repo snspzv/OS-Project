@@ -1,5 +1,6 @@
 #include "User.h"
 #include <cstring>
+#include <string>
 #include <iostream>
 #include "Constants.h"
 #include <unistd.h>
@@ -9,7 +10,12 @@
 #include <netinet/in.h>
 #include <vector>
 #include <sys/select.h>
+#include <mutex>
 #include "sendRecv.h"
+#include "sharedInfo.h"
+#include "concatChars.h"
+
+
 
 User::User(int socket_fd)
 {
@@ -28,61 +34,95 @@ User::User()
 	_request_accepted = 0;
 }
 
-bool User::select_user(int new_socket, std::vector<User>& p_vector, fd_set & fds, timespec & tv)
+bool User::select_user(fd_set & fds, timespec & tv)
 {
 	char from_server[BUFFER_SIZE] = "Wait for a connection or enter the name of the user you'd like to message: ";
-	char conRequested[BUFFER_SIZE] = "has requested to message with you. Do you want to message them?(y/n) ";
-	char error_mess[BUFFER_SIZE] = "Invalid name. Try again\n";
+	char conRequested[BUFFER_SIZE] = " has requested to message with you. Do you want to message them?(y/n) ";
+	char bad_name[BUFFER_SIZE] = "Invalid name. Try again\n";
 	char successful_con[BUFFER_SIZE] = "Connection Successful.";
 	char deny_con[BUFFER_SIZE] = "Connection Denied.";
+	char busy[BUFFER_SIZE] = "This user is currently not available :(";
+	char timeout_err[BUFFER_SIZE] = "Your request has timed out";
+	char invalid_response[BUFFER_SIZE] = "Ivalid response. Please answer 'y' or 'n'";
 	char name[BUFFER_SIZE];
 	char yes_no[BUFFER_SIZE];
 	int status;
+	bool matched = false;
+	bool request_done = false;
+	int bad_responses = 0;
+	fd_set temp_fds;
+	tv.tv_sec = 2;
+	send(_uid, from_server, strlen(from_server));
 
-	send(new_socket, from_server, strlen(from_server));
-
+	set_not_busy(_vect_index);
 	//Continue looping until client sends name of user they want to chat with OR connection requested is true
 	do
 	{
-		status = pselect(new_socket + 1, &fds, NULL, NULL, &tv, NULL);
-		printf("%d\n", _connection_requested);
-	} while ((status == 0) && (_connection_requested == false));
+		temp_fds = fds;
+		status = pselect(_uid + 1, &temp_fds, NULL, NULL, &tv, NULL);
+		//printf("%d\n", status);
+	} while ((status == 0) && (is_not_busy(_vect_index)));
 
 
 	//another user has asked to message with current user
-	if (_connection_requested)
+	if (!is_not_busy(_vect_index))
 	{
-		printf("here\n");
-		int requester = 0;
-		status = 1;
-		//Find user requesting to connect
-		for (auto& pot_user : p_vector)
-		{
-			if(pot_user._uid == _connected_uid)
-			{
-				break;
-			}
-			requester++;
-		}
-		strncpy(name, p_vector[requester]._name, strlen(p_vector[requester]._name));
-		//Ask user if they want to message requesting user
-		//if not exit with false
-		send(new_socket, name, strlen(name));
-		send(new_socket, conRequested, strlen(conRequested));
-		receive(new_socket, yes_no, 1);
-		if((yes_no[0] == 'Y') || (yes_no[0] == 'y'))
-		{
-			p_vector[requester]._request_accepted = 1;
-			send(new_socket, successful_con, strlen(successful_con));
-			return true;
-		}
-		if((yes_no[0] == 'N') || (yes_no[0] == 'n'))
-		{
-			p_vector[requester]._request_accepted = -1;
-			send(new_socket, deny_con, strlen(deny_con));
-			return false;
-		}
+		//Ask user if they want to message with potential partner
+		int requester_index = get_requester_name(_vect_index, name);
+		char request_approval[BUFFER_SIZE];
+		concatChars(request_approval, name, conRequested);
+		send(_uid, request_approval, strlen(request_approval));
 
+		do
+		{
+			//Wait on user to respond for 60 seconds 
+			temp_fds = fds;
+			tv.tv_sec = 60;
+			status = pselect(_uid + 1, &temp_fds, NULL, NULL, &tv, NULL);
+			printf("%d\n", status);
+			//timeout has occurred OR too many more than two invalid responses
+			if ((status == 0) || (bad_responses > 2))
+			{
+				timeout_request(requester_index);
+				send(_uid, timeout_err, strlen(timeout_err));
+			}
+
+			//pselect returns error
+			else if (status == -1)
+			{
+				perror("select");
+				return false;
+			}
+
+			//pselect has returned number of file descriptors in fds that are ready to be read
+			//only fd in fds is _uid so no reason to check number for others
+			//Indicates user has rejected or accepted request
+			else
+			{
+				receive(_uid, yes_no, BUFFER_SIZE);
+				//User accepts partner
+				if ((yes_no[0] == 'Y') || (yes_no[0] == 'y'))
+				{
+					accept_request(_vect_index, requester_index);
+					send(_uid, successful_con, strlen(successful_con));
+					matched = true;
+				}
+
+				//User denies partner
+				else if ((yes_no[0] == 'N') || (yes_no[0] == 'n'))
+				{
+					deny_request(requester_index);
+					send(_uid, deny_con, strlen(deny_con));
+				}
+
+				//Invalid response
+				else
+				{
+					send(_uid, invalid_response, strlen(invalid_response));
+					bad_responses++;
+				}
+			}
+		} while (!request_done);
 	}
 
 	//pselect returns error
@@ -93,52 +133,70 @@ bool User::select_user(int new_socket, std::vector<User>& p_vector, fd_set & fds
 	}
 
 	//pselect has returned number of file descriptors in fds that are ready to be read
-	//only fd in fds is new_socket so no reason to check number for others
+	//only fd in fds is _uid so no reason to check number for others
 	//Indicates user has sent the name of a user they want to message
 	else
 	{
-		read(new_socket, name, BUFFER_SIZE);
+		read(_uid, name, BUFFER_SIZE);
 
-		for(auto& pot_user : p_vector)
+		int partner_index = name_in_set(name, _uid);
+
+		//Potential partner found
+		if (partner_index != -1)
 		{
-			printf("%s\n", pot_user._name);
-		}
-
-		for (auto& pot_user : p_vector)
-		{
-
-			if ((strcmp(pot_user._name, name) == 0) && (pot_user._uid != _uid))
+			//Partner is busy and cannot be requested
+			if (!request_partner(_vect_index, partner_index))
 			{
-				_connected_uid = pot_user._uid;
-				pot_user._connected_uid = _uid;
+				send(_uid, busy, strlen(busy));
+			}
 
-				pot_user._connection_requested = true;
-				//printf("%s %d %d\n", pot_user._name, pot_user._connection_requested, pot_user._uid);
-				while(_request_accepted == 0);	//Waits till request is accepted or denied
+			//Partner available and request flag set
+			else
+			{
+				//Continue checking if own connection_requested written to by potential partner or timeout
+				//It's initialized as its index in infoShare vector
+				do 
+				{
+					sleep(1);
+					status = check_request_status(_vect_index);
+				} while (status == _vect_index);
 
-				if(_request_accepted == 1)
+				//Potential partner has denied request
+				if (status == -1)
 				{
-					send(new_socket, successful_con, strlen(successful_con));
-					_request_accepted = 0;
-					return true;
+					send(_uid, deny_con, strlen(successful_con));
+					failed_request_reset(_vect_index, partner_index);
 				}
-				else if(_request_accepted == -1)
+
+				//Potential partner has accepted request
+				else if (status == partner_index)
 				{
-					send(new_socket, deny_con, strlen(deny_con));
-					_connected_uid = 0;
-					pot_user._connected_uid = 0;
-					_request_accepted = 0;
-					return false;
+					send(_uid, successful_con, strlen(successful_con));
+					matched = true;
 				}
+
+				//Request has timed out
+				else if (status == -2)
+				{
+					send(_uid, timeout_err, strlen(timeout_err));
+					failed_request_reset(_vect_index, partner_index);
+				}
+
 			}
 		}
-		send(new_socket, error_mess, strlen(error_mess), 0);
-	}
 
-	return false;
+		//Potential partner name not found
+		else
+		{
+			send(_uid, bad_name, strlen(bad_name));
+		}
+
+	}
+	
+	return matched;
 }
 
-void User::enter_name(int new_socket, std::vector<User> p_vector)
+void User::enter_name()
 {
 	char enter_name[BUFFER_SIZE] = "Enter your username: ";
 	char not_unique[BUFFER_SIZE] = "The username you entered is already taken. Try again.";
@@ -149,30 +207,27 @@ void User::enter_name(int new_socket, std::vector<User> p_vector)
 	do
 	{
 		valid_name = true;
-		send(new_socket, enter_name, strlen(enter_name), 0);
+		send(_uid, enter_name, strlen(enter_name), 0);
 		memset(name, 0, sizeof name);
-		read(new_socket, name, BUFFER_SIZE);
+		read(_uid, name, BUFFER_SIZE);
 
-		printf("%s\n", name);
-
-		for(auto& pot_user : p_vector)
+		//No other user has this name
+		if (name_in_set(name, _uid) == -1)
 		{
-			if((strcmp(pot_user._name, name) == 0))
-			{
-
-				valid_name = false;
-				send(new_socket, not_unique, strlen(not_unique), 0);
-				break;
-			}
+			add_to_set(name, _vect_index, _uid);
+			send(_uid, unique, strlen(unique), 0);
 		}
 
-		if (valid_name)
+		//Other user has this name
+		else
 		{
-			send(new_socket, unique, strlen(unique), 0);
+			send(_uid, not_unique, strlen(not_unique), 0);
+			valid_name = false;
 		}
+
 	} while(!valid_name);
 
-
+	
 
 	strncpy(_name, name, strlen(name));
 
@@ -182,4 +237,14 @@ void User::enter_name(int new_socket, std::vector<User> p_vector)
 char* User::get_name()
 {
 	return _name;
+}
+
+void User::set_vect_index(int vi)
+{
+	_vect_index = vi;
+}
+
+int User::get_vect_index()
+{
+	return _vect_index;
 }

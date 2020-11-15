@@ -15,15 +15,17 @@ int main(int argc, char const *argv[])
 {
     char message[1024];
     char server_message[1024];
-    int sock = 0, valread;
+    int sock_fd = 0, valread;
     struct sockaddr_in serv_addr;
     char buffer[1024] = {0};
     int max_fd;
     std::vector<int> fds_vect;
     fd_set fds;
+    fd_set temp_fds;
+    int status;
     struct timespec tv;
 
-    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    if ((sock_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
         printf("\n Socket creation error \n");
         return -1;
@@ -39,35 +41,67 @@ int main(int argc, char const *argv[])
         return -1;
     }
 
-    if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
+    if (connect(sock_fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
         printf("\nConnection Failed \n");
         return -1;
     }
 
-    fds_vect.push_back(sock);
+    fds_vect.push_back(sock_fd);
     fds_vect.push_back(STDIN_FILENO);
-    init_fd_set(fds_vect, SELECT_TIMEOUT_S, SELECT_TIMEOUT_NS, fds, tv);
+    max_fd = init_fd_set(fds_vect, SELECT_TIMEOUT_S, SELECT_TIMEOUT_NS, fds, tv);
 
     //Wait until server gives ok on username
     do
     {
         //Asking for username
-        receive(sock);
+        receive(sock_fd);
         //Sending username
-        send(sock);
+        send(sock_fd);
         //Receive feedback on uniqueness of username
-        receive(sock, server_message, sizeof server_message);
+        receive(sock_fd, server_message, sizeof server_message);
         printf("%s\n", server_message);
 
     } while (server_message[0] == 'T');
 
+    //get messaging partner set up
+    do
+    {
+        //Send user to talk to OR wait for other user to connect
+        receive(sock_fd);
 
-    //Send user to talk to OR wait for other user to connect
-    receive(sock);
-    send(sock);
+        //wait on STDIN or socket with no timeout
+        temp_fds = fds;
+        status = pselect(max_fd + 1, &temp_fds, NULL, NULL, NULL, NULL);
+        
+        //User has entered name of potential messaging partner
+        if (status == FD_ISSET(STDIN_FILENO, &temp_fds))
+        {
+            //Read name from STDIN and write to message buffer
+            receive(STDIN_FILENO, message, sizeof message);
+  
+            //Remove newline STDIN adds on to end
+            message[strlen(message) - 1] = '\0';
+  
+            //Send name in message buffer to server
+            send(sock_fd, message, strlen(message));
 
-    receive(sock);
+            //Server notifies if connection is made or not
+            receive(sock_fd);
+        }
+
+        //Other user wants to become messaging partner
+        else if (status == FD_ISSET(sock_fd, &temp_fds))
+        {
+            receive(sock_fd);
+
+            send(sock_fd);
+        }
+            
+
+        
+    } while (false);
+        
 
 
     while(1)
