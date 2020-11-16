@@ -54,7 +54,7 @@ bool User::select_user(fd_set & fds, timespec & tv)
 	int bad_responses = 0;
 	fd_set temp_fds;
 	tv.tv_sec = 2;
-	send(_uid, from_server, strlen(from_server));
+	send_buffer(_uid, from_server, strlen(from_server), false);
 
 	set_not_busy(_vect_index);
 	//Continue looping until client sends name of user they want to chat with OR connection requested is true
@@ -73,11 +73,11 @@ bool User::select_user(fd_set & fds, timespec & tv)
 		int requester_index = get_requester_name(_vect_index, name);
 		char request_approval[BUFFER_SIZE];
 		concatChars(request_approval, name, conRequested);
-		send(_uid, request_approval, strlen(request_approval));
+		send_buffer(_uid, request_approval, strlen(request_approval), false);
 
 		do
 		{
-			//Wait on user to respond for 60 seconds 
+			//Wait on user to respond for 60 seconds
 			temp_fds = fds;
 			tv.tv_sec = 60;
 			status = pselect(_uid + 1, &temp_fds, NULL, NULL, &tv, NULL);
@@ -85,7 +85,7 @@ bool User::select_user(fd_set & fds, timespec & tv)
 			if ((status == 0) || (bad_responses > 2))
 			{
 				timeout_request(requester_index);
-				send(_uid, timeout_err, strlen(timeout_err));
+				send_buffer(_uid, timeout_err, strlen(timeout_err), false);
 			}
 
 			//pselect returns error
@@ -106,7 +106,7 @@ bool User::select_user(fd_set & fds, timespec & tv)
 				{
 					accept_request(_vect_index, requester_index);
 					sleep(2);//Give time for other thread to notice and set connection_index
-					send(_uid, successful_con, strlen(successful_con));
+					send_buffer(_uid, successful_con, strlen(successful_con), false);
 					matched = true;
 					request_ongoing = false;
 				}
@@ -115,14 +115,14 @@ bool User::select_user(fd_set & fds, timespec & tv)
 				else if ((yes_no[0] == 'N') || (yes_no[0] == 'n'))
 				{
 					deny_request(requester_index);
-					send(_uid, deny_con, strlen(deny_con));
+					send_buffer(_uid, deny_con, strlen(deny_con), false);
 					request_ongoing = false;
 				}
 
 				//Invalid response
 				else
 				{
-					send(_uid, invalid_response, strlen(invalid_response));
+					send_buffer(_uid, invalid_response, strlen(invalid_response), false);
 					bad_responses++;
 				}
 			}
@@ -151,7 +151,7 @@ bool User::select_user(fd_set & fds, timespec & tv)
 			//Partner is busy and cannot be requested
 			if (!request_partner(_vect_index, partner_index))
 			{
-				send(_uid, busy, strlen(busy));
+				send_buffer(_uid, busy, strlen(busy), false);
 			}
 
 			//Partner available and request flag set
@@ -159,11 +159,11 @@ bool User::select_user(fd_set & fds, timespec & tv)
 			{
 				char final_asking[BUFFER_SIZE];
 				concatChars(final_asking, name, asking_partner);
-				send(_uid, final_asking, strlen(final_asking));
+				send_buffer(_uid, final_asking, strlen(final_asking), false);
 
 				//Continue checking if own connection_requested written to by potential partner or timeout
 				//It's initialized as its index in infoShare vector
-				do 
+				do
 				{
 					sleep(1);
 					status = check_request_status(_vect_index);
@@ -172,7 +172,7 @@ bool User::select_user(fd_set & fds, timespec & tv)
 				//Potential partner has denied request
 				if (status == -1)
 				{
-					send(_uid, deny_con, strlen(successful_con));
+					send_buffer(_uid, deny_con, strlen(successful_con), false);
 					failed_request_reset(_vect_index, partner_index);
 				}
 
@@ -180,14 +180,14 @@ bool User::select_user(fd_set & fds, timespec & tv)
 				else if (status == partner_index)
 				{
 					set_connection(_vect_index, partner_index);
-					send(_uid, successful_con, strlen(successful_con));
+					send_buffer(_uid, successful_con, strlen(successful_con), false);
 					matched = true;
 				}
 
 				//Request has timed out
 				else if (status == -2)
 				{
-					send(_uid, timeout_err, strlen(timeout_err));
+					send_buffer(_uid, timeout_err, strlen(timeout_err), false);
 					failed_request_reset(_vect_index, partner_index);
 				}
 
@@ -197,11 +197,11 @@ bool User::select_user(fd_set & fds, timespec & tv)
 		//Potential partner name not found
 		else
 		{
-			send(_uid, bad_name, strlen(bad_name));
+			send_buffer(_uid, bad_name, strlen(bad_name), false);
 		}
 
 	}
-	
+
 	return matched;
 }
 
@@ -216,7 +216,7 @@ void User::enter_name()
 	do
 	{
 		valid_name = true;
-		send(_uid, enter_name, strlen(enter_name), 0);
+		send_buffer(_uid, enter_name, strlen(enter_name), false);
 		memset(name, 0, sizeof name);
 		read(_uid, name, BUFFER_SIZE);
 
@@ -224,19 +224,19 @@ void User::enter_name()
 		if (name_in_set(name, _uid) == -1)
 		{
 			add_to_set(name, _vect_index, _uid);
-			send(_uid, unique, strlen(unique), 0);
+			send_buffer(_uid, unique, strlen(unique), false);
 		}
 
 		//Other user has this name
 		else
 		{
-			send(_uid, not_unique, strlen(not_unique), 0);
+			send_buffer(_uid, not_unique, strlen(not_unique), false);
 			valid_name = false;
 		}
 
 	} while(!valid_name);
 
-	
+
 
 	strncpy(_name, name, strlen(name));
 
@@ -274,7 +274,7 @@ void User::handle_messages()
 
 	while (1)
 	{
-		
+
 
 		//wait for user to send or receive message
 		do
@@ -282,7 +282,7 @@ void User::handle_messages()
 			temp_fds = fds;
 			status = pselect(max_fd + 1, &temp_fds, NULL, NULL, &tv, NULL);
 		} while ((select == 0) && (connection_active(_vect_index)));
-		
+
 		//User has sent message
 		if (FD_ISSET(_uid, &temp_fds))
 		{
@@ -290,7 +290,7 @@ void User::handle_messages()
 			receive(_uid, message, BUFFER_SIZE);
 
 			//Send contents of message buffer to partner
-			send(partner_sock, message, strlen(message));
+			send_buffer(partner_sock, message, strlen(message), false);
 		}
 
 		//Partner has sent message
@@ -300,13 +300,13 @@ void User::handle_messages()
 			receive(partner_sock, message, BUFFER_SIZE);
 
 			//Send contenets of message buffer to partner
-			send(_uid, message, strlen(message));
+			send_buffer(_uid, message, strlen(message), false);
 		}
 
 		//handle lost connection
 		else if (!connection_active(_vect_index))
 		{
-			//condition to loop back to ask 
+			//condition to loop back to ask
 			status = 0;
 		}
 	}
