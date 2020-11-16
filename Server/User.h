@@ -20,5 +20,6 @@ class User {
 		char* get_name();
 		void set_vect_index(int vi);
 		int get_vect_index();
+		void handle_messages();
 
 };

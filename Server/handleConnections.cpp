@@ -16,7 +16,6 @@
 
 
 std::mutex index_mtx;
-std::vector<User> user_vector;
 int userIndex = 0;
 
 
@@ -40,9 +39,8 @@ void manageConnection(void* arg)
     struct timespec tv;
     std::vector<int> fds_vect;
 
-    /****Initialize file descriptor set this thread will be checking on****/
+    //Initialize file descriptor set this thread will be checking on
     fds_vect.push_back(client_fd);
-    //fds can now be used with select, currently only checking client_fd
     init_fd_set(fds_vect, SELECT_TIMEOUT_S, SELECT_TIMEOUT_NS, fds, tv);
     fds_vect.clear();
     
@@ -67,18 +65,10 @@ void manageConnection(void* arg)
     sleep(1);
 
     //Wait until matched with messaging partner
-    while(thisUser.select_user(fds, tv));
-
-
-    while (1)
-    {
-
-
-        valread = read(client_fd, buffer, BUFFER_SIZE);
-        if (buffer)
-            send(client_fd, buffer, strlen(buffer), 0);
-
-    }
+    while(!thisUser.select_user(fds, tv));
+    
+    //Main messaging loop
+    thisUser.handle_messages();
 
 
 }

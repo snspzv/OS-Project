@@ -7,6 +7,7 @@ struct sharedInfo {
 	int connection_index;
 	int sock_fd;
 	bool busy;
+	bool connected;
 };
 
 int name_in_set(char * check_name, int socket);
@@ -30,3 +31,9 @@ void accept_request(int vect_index, int requester_index);
 void deny_request(int requester_index);
 
 void timeout_request(int requester_index);
+
+void set_connection(int vect_index, int partner_index);
+
+int get_partner_sock(int vect_index);
+
+bool connection_active(int vect_index);

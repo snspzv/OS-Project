@@ -40,8 +40,6 @@ void add_to_set(char* name_in, int vect_index, int socket)
 		info_vect.push_back(userInfo);
 	}
 
-	
-
 	strncpy(info_vect[vect_index].name, name_in, strlen(name_in));
 
 	info_vect[vect_index].sock_fd = socket;
@@ -116,7 +114,6 @@ int get_requester_name(int vect_index, char* requester_name)
 	memset(requester_name, 0, sizeof requester_name);
 
 	int requester_index = info_vect[vect_index].connection_requested;
-	//printf("%d\n", requester_index);
 	strncpy(requester_name, info_vect[requester_index].name, strlen(info_vect[requester_index].name));
 	return requester_index;
 
@@ -148,6 +145,34 @@ void timeout_request(int requester_index)
 	info_vect[requester_index].connection_requested = -2;
 	return;
 }
+
+void set_connection(int vect_index, int partner_index)
+{
+	///will be released when out of scope
+	std::lock_guard<std::mutex> lock(info_mtx);
+
+	info_vect[vect_index].connection_index = partner_index;
+	info_vect[partner_index].connection_index = vect_index;
 	
+	return;
+}
+
+int get_partner_sock(int vect_index)
+{
+	///will be released when out of scope
+	std::lock_guard<std::mutex> lock(info_mtx);
+	
+	int partner_index = info_vect[vect_index].connection_index;
+	return info_vect[partner_index].sock_fd;
+}
+
+bool connection_active(int vect_index)
+{
+	if ((info_vect[vect_index].connection_index) == -1)
+		return false;
+
+	return true;
+}
+
 
 

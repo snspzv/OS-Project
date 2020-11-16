@@ -14,6 +14,7 @@
 #include "sendRecv.h"
 #include "sharedInfo.h"
 #include "concatChars.h"
+#include "wait.h"
 
 
 
@@ -43,12 +44,13 @@ bool User::select_user(fd_set & fds, timespec & tv)
 	char deny_con[BUFFER_SIZE] = "Connection Denied.";
 	char busy[BUFFER_SIZE] = "This user is currently not available :(";
 	char timeout_err[BUFFER_SIZE] = "Your request has timed out";
-	char invalid_response[BUFFER_SIZE] = "Ivalid response. Please answer 'y' or 'n'";
+	char invalid_response[BUFFER_SIZE] = "Invalid response. Please answer 'y' or 'n'";
+	char asking_partner[BUFFER_SIZE] = " found, asking them now";
 	char name[BUFFER_SIZE];
 	char yes_no[BUFFER_SIZE];
 	int status;
 	bool matched = false;
-	bool request_done = false;
+	bool request_ongoing = true;
 	int bad_responses = 0;
 	fd_set temp_fds;
 	tv.tv_sec = 2;
@@ -79,7 +81,6 @@ bool User::select_user(fd_set & fds, timespec & tv)
 			temp_fds = fds;
 			tv.tv_sec = 60;
 			status = pselect(_uid + 1, &temp_fds, NULL, NULL, &tv, NULL);
-			printf("%d\n", status);
 			//timeout has occurred OR too many more than two invalid responses
 			if ((status == 0) || (bad_responses > 2))
 			{
@@ -104,8 +105,10 @@ bool User::select_user(fd_set & fds, timespec & tv)
 				if ((yes_no[0] == 'Y') || (yes_no[0] == 'y'))
 				{
 					accept_request(_vect_index, requester_index);
+					sleep(2);//Give time for other thread to notice and set connection_index
 					send(_uid, successful_con, strlen(successful_con));
 					matched = true;
+					request_ongoing = false;
 				}
 
 				//User denies partner
@@ -113,6 +116,7 @@ bool User::select_user(fd_set & fds, timespec & tv)
 				{
 					deny_request(requester_index);
 					send(_uid, deny_con, strlen(deny_con));
+					request_ongoing = false;
 				}
 
 				//Invalid response
@@ -122,7 +126,7 @@ bool User::select_user(fd_set & fds, timespec & tv)
 					bad_responses++;
 				}
 			}
-		} while (!request_done);
+		} while (request_ongoing);
 	}
 
 	//pselect returns error
@@ -153,6 +157,10 @@ bool User::select_user(fd_set & fds, timespec & tv)
 			//Partner available and request flag set
 			else
 			{
+				char final_asking[BUFFER_SIZE];
+				concatChars(final_asking, name, asking_partner);
+				send(_uid, final_asking, strlen(final_asking));
+
 				//Continue checking if own connection_requested written to by potential partner or timeout
 				//It's initialized as its index in infoShare vector
 				do 
@@ -171,6 +179,7 @@ bool User::select_user(fd_set & fds, timespec & tv)
 				//Potential partner has accepted request
 				else if (status == partner_index)
 				{
+					set_connection(_vect_index, partner_index);
 					send(_uid, successful_con, strlen(successful_con));
 					matched = true;
 				}
@@ -247,4 +256,60 @@ void User::set_vect_index(int vi)
 int User::get_vect_index()
 {
 	return _vect_index;
+}
+
+void User::handle_messages()
+{
+	int status;
+
+	int partner_sock = get_partner_sock(_vect_index);
+	int max_fd;
+	struct timespec tv;
+	fd_set fds;
+	fd_set temp_fds;
+	std::vector<int> fds_vect = { _uid, partner_sock };
+	char message[BUFFER_SIZE];
+
+	max_fd = init_fd_set(fds_vect, SELECT_TIMEOUT_S, SELECT_TIMEOUT_NS, fds, tv);
+
+	while (1)
+	{
+		
+
+		//wait for user to send or receive message
+		do
+		{
+			temp_fds = fds;
+			status = pselect(max_fd + 1, &temp_fds, NULL, NULL, &tv, NULL);
+		} while ((select == 0) && (connection_active(_vect_index)));
+		
+		//User has sent message
+		if (FD_ISSET(_uid, &temp_fds))
+		{
+			//write user's message into message buffer
+			receive(_uid, message, BUFFER_SIZE);
+
+			//Send contents of message buffer to partner
+			send(partner_sock, message, strlen(message));
+		}
+
+		//Partner has sent message
+		else if (FD_ISSET(partner_sock, &temp_fds))
+		{
+			//Write partner's message into message buffer
+			receive(partner_sock, message, BUFFER_SIZE);
+
+			//Send contenets of message buffer to partner
+			send(_uid, message, strlen(message));
+		}
+
+		//handle lost connection
+		else if (!connection_active(_vect_index))
+		{
+			//condition to loop back to ask 
+			status = 0;
+		}
+	}
+
+	return;
 }
