@@ -14,6 +14,7 @@ void send(int sock_fd)
     char message[BUFFER_SIZE];
     memset(message, 0, sizeof message);
     std::cin >> message;
+    //printf("%s\n", message);
     send(sock_fd, message, strlen(message), 0);
 }
 

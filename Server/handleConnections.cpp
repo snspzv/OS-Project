@@ -2,6 +2,7 @@
 #include "User.h"
 #include "Constants.h"
 #include "wait.h"
+#include "sharedInfo.h"
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/socket.h>
@@ -14,99 +15,65 @@
 
 
 
-std::mutex mtx;
-std::vector<User> user_vector;
-std::vector<User> *p_vector = &user_vector;
+std::mutex index_mtx;
+int userIndex = 0;
+
+
+void initUserIndex(User& user)
+{
+    //lock released when out of scope
+    std::lock_guard<std::mutex> lock(index_mtx);
+
+    user.set_vect_index(userIndex);
+    userIndex++;
+}
+
 
 void manageConnection(void* arg)
 {
     static int user_count = 0;
     int client_fd = *((int*)arg);
     int valread;
-    User* p_user;
     char buffer[BUFFER_SIZE] = { 0 };
     fd_set fds;
     struct timespec tv;
     std::vector<int> fds_vect;
 
+    //Initialize file descriptor set this thread will be checking on
     fds_vect.push_back(client_fd);
-    //fds can now be used with select, currently only checking client_fd
     init_fd_set(fds_vect, SELECT_TIMEOUT_S, SELECT_TIMEOUT_NS, fds, tv);
     fds_vect.clear();
-   
+    
+    /****Initialize thisUser****/
+    User thisUser(client_fd);
     if (user_count < MAX_THREADS)
     {
-        //To do: place locks around access to vector and assigning pointer
-        user_vector.push_back(User(client_fd));
-        p_user = &user_vector.back();
-        p_user->enter_name(client_fd, user_vector);
-        //Lock ends here
-
-
+        initUserIndex(thisUser);
+        thisUser.enter_name();
         user_count++;
     }
 
-    printf("%s is connected, client_fd id %d\n", p_user->get_name(), client_fd);
-
-    //Asking for messaging partner
-    while(!(p_user->select_user(client_fd, user_vector, fds, tv)));
+    //add in error message for too many users
+    /*else
     {
-      //Waits until User to message is found
-    }
+        send()
+    }*/
 
+    printf("%s is connected, client_fd id %d\n", thisUser.get_name(), client_fd);
 
+    //Prevent back to back messages being sent together
+    sleep(1);
 
-
-    while (1)
-    {
-
-
-        valread = read(client_fd, buffer, BUFFER_SIZE);
-        if (buffer)
-            send(client_fd, buffer, strlen(buffer), 0);
-
-    }
+    //Wait until matched with messaging partner
+    while(!thisUser.select_user(fds, tv));
+    
+    //Main messaging loop
+    thisUser.handle_messages();
 
 
 }
 
 
 
-int wait_recv_or_send(std::vector<int> fds)
-{
-    int max_fd = 0;
-    int select_ret;
-    // timeout structure passed into select
-    struct timeval tv;
-    
-    //Timeout after 5 seconds
-    tv.tv_sec = 5;
-    
-    // fd_set passed into select
-    fd_set fds_to_watch;
-    
-    // Zero out the fds_to_watch
-    FD_ZERO(&fds_to_watch);
-    
-    //Add fds to fds_to_watch
-    for (auto& fd : fds)
-    {
-        FD_SET(fd, &fds_to_watch);
-        
-        if (fd > max_fd)
-        {
-            max_fd = fd;
-        }
-    }
-    
-    
-    //wait on fds in fds_to_watch
-    do
-    {
-        select_ret = select(max_fd + 1, &fds_to_watch, NULL, NULL, &tv);
-    } while (select_ret == 0);
 
-        // return 0 if STDIN is not ready to be read.
-        //return FD_ISSET(client_fd, &fds);
-        return 1;
-}
+

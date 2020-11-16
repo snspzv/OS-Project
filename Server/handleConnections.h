@@ -1,5 +1,6 @@
 #pragma once
 #include<vector>
+#include "User.h"
 void manageConnection(void * arg);
 
-int wait_recv_or_send(std::vector<int> fds);
+void initUserIndex(User & user);
