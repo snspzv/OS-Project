@@ -57,7 +57,7 @@ int main(int argc, char const *argv[])
         //Asking for username
         receive(sock_fd);
         //Sending username
-        send(sock_fd);
+        send_buffer(sock_fd, true);
         //Receive feedback on uniqueness of username
         receive(sock_fd, server_message, sizeof server_message);
         printf("%s\n", server_message);
@@ -73,18 +73,15 @@ int main(int argc, char const *argv[])
         //wait on STDIN or socket with no timeout
         temp_fds = fds;
         status = pselect(max_fd + 1, &temp_fds, NULL, NULL, NULL, NULL);
-        
+
         //User has entered name of potential messaging partner
         if (FD_ISSET(STDIN_FILENO, &temp_fds))
         {
             //Read name from STDIN and write to message buffer
             receive(STDIN_FILENO, message, sizeof message);
-  
-            //Remove newline STDIN adds on to end
-            message[strlen(message) - 1] = '\0';
-  
+
             //Send name in message buffer to server
-            send(sock_fd, message, strlen(message));
+            send_buffer(sock_fd, message, strlen(message), true);
 
             receive(sock_fd);
 
@@ -96,14 +93,30 @@ int main(int argc, char const *argv[])
         else if (FD_ISSET(sock_fd, &temp_fds))
         {
             receive(sock_fd);
+            temp_fds = fds;
+            status = pselect(max_fd + 1, &temp_fds, NULL, NULL, NULL, NULL);
+            //User has entered message to be sent
+            if (FD_ISSET(STDIN_FILENO, &temp_fds))
+            {
+                //Read message from STDIN and write to message buffer
+                receive(STDIN_FILENO, message, sizeof message);
 
-            send(sock_fd);
+                //Send name in message buffer to server
+                send_buffer(sock_fd, message, strlen(message), true);
+            }
+
+            else if (FD_ISSET(sock_fd, &temp_fds))
+            {
+                //Read message from sock_fd and write to STDOUT
+                receive(sock_fd);
+            }
+            //send_buffer(sock_fd, true);
         }
-            
 
-        
+
+
     } while (false);
-        
+
 
 
     while(1)
@@ -118,11 +131,8 @@ int main(int argc, char const *argv[])
             //Read message from STDIN and write to message buffer
             receive(STDIN_FILENO, message, sizeof message);
 
-            //Remove newline STDIN adds on to end
-            message[strlen(message) - 1] = '\0';
-
             //Send name in message buffer to server
-            send(sock_fd, message, strlen(message));
+            send_buffer(sock_fd, message, strlen(message), true);
         }
 
         else if (FD_ISSET(sock_fd, &temp_fds))
