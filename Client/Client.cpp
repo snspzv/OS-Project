@@ -80,9 +80,6 @@ int main(int argc, char const *argv[])
             //Read name from STDIN and write to message buffer
             receive(STDIN_FILENO, message, sizeof message);
 
-            //Remove newline STDIN adds on to end
-            message[strlen(message) - 1] = '\0';
-
             //Send name in message buffer to server
             send_buffer(sock_fd, message, strlen(message), true);
 
@@ -96,8 +93,24 @@ int main(int argc, char const *argv[])
         else if (FD_ISSET(sock_fd, &temp_fds))
         {
             receive(sock_fd);
+            temp_fds = fds;
+            status = pselect(max_fd + 1, &temp_fds, NULL, NULL, NULL, NULL);
+            //User has entered message to be sent
+            if (FD_ISSET(STDIN_FILENO, &temp_fds))
+            {
+                //Read message from STDIN and write to message buffer
+                receive(STDIN_FILENO, message, sizeof message);
 
-            send_buffer(sock_fd, true);
+                //Send name in message buffer to server
+                send_buffer(sock_fd, message, strlen(message), true);
+            }
+
+            else if (FD_ISSET(sock_fd, &temp_fds))
+            {
+                //Read message from sock_fd and write to STDOUT
+                receive(sock_fd);
+            }
+            //send_buffer(sock_fd, true);
         }
 
 
@@ -117,9 +130,6 @@ int main(int argc, char const *argv[])
         {
             //Read message from STDIN and write to message buffer
             receive(STDIN_FILENO, message, sizeof message);
-
-            //Remove newline STDIN adds on to end
-            message[strlen(message) - 1] = '\0';
 
             //Send name in message buffer to server
             send_buffer(sock_fd, message, strlen(message), true);

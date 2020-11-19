@@ -86,6 +86,8 @@ bool User::select_user(fd_set & fds, timespec & tv)
 			{
 				timeout_request(requester_index);
 				send_buffer(_uid, timeout_err, strlen(timeout_err), false);
+				sleep(0.5);
+				request_ongoing = false;
 			}
 
 			//pselect returns error
@@ -116,13 +118,17 @@ bool User::select_user(fd_set & fds, timespec & tv)
 				{
 					deny_request(requester_index);
 					send_buffer(_uid, deny_con, strlen(deny_con), false);
+					sleep(0.5);
 					request_ongoing = false;
 				}
 
 				//Invalid response
 				else
 				{
-					send_buffer(_uid, invalid_response, strlen(invalid_response), false);
+					char copy_invalid_response[BUFFER_SIZE];
+					memset(copy_invalid_response, 0, sizeof copy_invalid_response);
+					strncpy(copy_invalid_response, invalid_response, strlen(invalid_response));
+					send_buffer(_uid, copy_invalid_response, strlen(copy_invalid_response), false);
 					bad_responses++;
 				}
 			}
@@ -141,7 +147,7 @@ bool User::select_user(fd_set & fds, timespec & tv)
 	//Indicates user has sent the name of a user they want to message
 	else
 	{
-		read(_uid, name, BUFFER_SIZE);
+		receive(_uid, name, BUFFER_SIZE);
 
 		int partner_index = name_in_set(name, _uid);
 
@@ -152,6 +158,7 @@ bool User::select_user(fd_set & fds, timespec & tv)
 			if (!request_partner(_vect_index, partner_index))
 			{
 				send_buffer(_uid, busy, strlen(busy), false);
+				sleep(0.5);
 			}
 
 			//Partner available and request flag set
@@ -173,6 +180,7 @@ bool User::select_user(fd_set & fds, timespec & tv)
 				if (status == -1)
 				{
 					send_buffer(_uid, deny_con, strlen(successful_con), false);
+					sleep(0.5);
 					failed_request_reset(_vect_index, partner_index);
 				}
 
@@ -188,6 +196,7 @@ bool User::select_user(fd_set & fds, timespec & tv)
 				else if (status == -2)
 				{
 					send_buffer(_uid, timeout_err, strlen(timeout_err), false);
+					sleep(0.5);
 					failed_request_reset(_vect_index, partner_index);
 				}
 
@@ -218,7 +227,7 @@ void User::enter_name()
 		valid_name = true;
 		send_buffer(_uid, enter_name, strlen(enter_name), false);
 		memset(name, 0, sizeof name);
-		read(_uid, name, BUFFER_SIZE);
+		receive(_uid, name, BUFFER_SIZE);
 
 		//No other user has this name
 		if (name_in_set(name, _uid) == -1)
