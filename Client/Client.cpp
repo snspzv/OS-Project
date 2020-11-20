@@ -6,16 +6,22 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <sys/types.h>
 #include "wait.h"
 #include "sendRecv.h"
 #include "Constants.h"
+#include "Output.h"
 
 
 int main(int argc, char const *argv[])
 {
+    
     char message[1024];
+    char name[1024];
     char server_message[1024];
-    int sock_fd = 0, valread;
+    int sock_fd = 0, valread, message_fd;
     struct sockaddr_in serv_addr;
     char buffer[1024] = {0};
     int max_fd;
@@ -51,6 +57,13 @@ int main(int argc, char const *argv[])
     fds_vect.push_back(STDIN_FILENO);
     max_fd = init_fd_set(fds_vect, SELECT_TIMEOUT_S, SELECT_TIMEOUT_NS, fds, tv);
 
+    //Open log file in write only mode, truncate to 0 bytes if exists, and create if it does not exist
+    message_fd = open("./messages.log", O_WRONLY | O_TRUNC | O_CREAT);
+    strcpy(message, "This is a test message of  over 50 characters vsdakn vsdakjn testing testing teting akndf dsk dlk  geskklsdf lkfads lkndsf;akn fs kldsfn nkl");
+    strcpy(name, "SAM");
+    
+    write_to_log(message, message_fd, name, true);
+    write_to_log(message, message_fd, name, false);
     //Wait until server gives ok on username
     do
     {
@@ -93,6 +106,7 @@ int main(int argc, char const *argv[])
         else if (FD_ISSET(sock_fd, &temp_fds))
         {
             receive(sock_fd);
+
             temp_fds = fds;
             status = pselect(max_fd + 1, &temp_fds, NULL, NULL, NULL, NULL);
             //User has entered message to be sent
@@ -117,7 +131,10 @@ int main(int argc, char const *argv[])
 
     } while (false);
 
-
+        
+    //Open new window to show conversation
+    system("./new_window.sh");
+    int wr;
 
     while(1)
     {
@@ -137,8 +154,14 @@ int main(int argc, char const *argv[])
 
         else if (FD_ISSET(sock_fd, &temp_fds))
         {
-            //Read message from sock_fd and write to STDOUT
-            receive(sock_fd);
+            //Read message from sock_fd and write to message buffer
+            receive(sock_fd, message, sizeof message);
+
+            //write message buffer to messages.log
+            wr = write(message_fd, message, strlen(message));
+
+            //flush buffer associated with message_fd to ensure that contents are immediately written to messages.log
+            fdatasync(message_fd);
         }
     }
 

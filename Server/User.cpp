@@ -150,7 +150,7 @@ bool User::select_user(fd_set & fds, timespec & tv)
 		receive(_uid, name, BUFFER_SIZE);
 
 		int partner_index = name_in_set(name, _uid);
-
+		printf("%d\n", partner_index);
 		//Potential partner found
 		if (partner_index != -1)
 		{
@@ -174,8 +174,9 @@ bool User::select_user(fd_set & fds, timespec & tv)
 				{
 					sleep(1);
 					status = check_request_status(_vect_index);
+					
 				} while (status == _vect_index);
-
+				
 				//Potential partner has denied request
 				if (status == -1)
 				{

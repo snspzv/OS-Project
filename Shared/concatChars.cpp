@@ -1,6 +1,8 @@
 #include "concatChars.h"
+#include "Constants.h"
 #include <cstring>
 
+//general version, not for writing to message file
 void concatChars(char* dest, char* first, char* second)
 {
 	int index = 0;
@@ -16,4 +18,17 @@ void concatChars(char* dest, char* first, char* second)
 	}
 
 	dest[index] = '\0';
+}
+
+
+void concatChars(char* dest, char* name, char* message, bool partner_message)
+{
+	int index = 0;
+	int nl_count = 0;
+	char tabs[7] = "\t\t\t\t\t\t\t";
+
+	if (partner_message)
+	{
+		for
+	}
 }
