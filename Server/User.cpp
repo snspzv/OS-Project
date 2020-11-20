@@ -105,7 +105,7 @@ bool User::select_user(fd_set & fds, timespec & tv)
 				if ((yes_no[0] == 'Y') || (yes_no[0] == 'y'))
 				{
 					accept_request(_vect_index, requester_index);
-					sleep(2);//Give time for other thread to notice and set connection_index
+					sleep(1);//Give time for other thread to notice and set connection_index
 					send(_uid, successful_con, strlen(successful_con));
 					matched = true;
 					request_ongoing = false;
@@ -116,6 +116,7 @@ bool User::select_user(fd_set & fds, timespec & tv)
 				{
 					deny_request(requester_index);
 					send(_uid, deny_con, strlen(deny_con));
+					matched = false;
 					request_ongoing = false;
 				}
 
@@ -144,7 +145,7 @@ bool User::select_user(fd_set & fds, timespec & tv)
 		read(_uid, name, BUFFER_SIZE);
 
 		int partner_index = name_in_set(name, _uid);
-
+		printf("%d\n", partner_index);
 		//Potential partner found
 		if (partner_index != -1)
 		{
@@ -160,15 +161,16 @@ bool User::select_user(fd_set & fds, timespec & tv)
 				char final_asking[BUFFER_SIZE];
 				concatChars(final_asking, name, asking_partner);
 				send(_uid, final_asking, strlen(final_asking));
-
+				
 				//Continue checking if own connection_requested written to by potential partner or timeout
 				//It's initialized as its index in infoShare vector
 				do 
 				{
 					sleep(1);
 					status = check_request_status(_vect_index);
+					
 				} while (status == _vect_index);
-
+				
 				//Potential partner has denied request
 				if (status == -1)
 				{
