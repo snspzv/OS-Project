@@ -19,11 +19,25 @@ void send_buffer(int sock_fd, bool from_user)
     send(sock_fd, message, strlen(message), 0);
 }
 
-void send_buffer(int sock_fd, char *message, int size, bool from_user)
+void send_buffer(int sock_fd, char *message, int size, bool from_user, int code)
+{
+    char codes[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 };
+    char c[1] = { codes[code] };
+    char to_send[1024];
+    concatChars(to_send, message, c);
+
+    sent_from(from_user, to_send);
+    send(sock_fd, to_send, strlen(to_send), 0);
+
+    
+}
+void send_buffer(int sock_fd, char* message, int size, bool from_user)
 {
     sent_from(from_user, message);
     send(sock_fd, message, strlen(message), 0);
 }
+
+
 
 void receive(int sock_fd) //receives return bools as well
 {

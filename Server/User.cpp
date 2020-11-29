@@ -39,7 +39,7 @@ bool User::select_user(fd_set & fds, timespec & tv)
 {
 	char from_server[BUFFER_SIZE] = "Wait for a connection or enter the name of the user you'd like to message: ";
 	char conRequested[BUFFER_SIZE] = " has requested to message with you. Do you want to message them?(y/n) ";
-	char bad_name[BUFFER_SIZE] = "Invalid name. Try again\n";
+	char bad_name[BUFFER_SIZE] = "Invalid name. Try again";
 	char successful_con[BUFFER_SIZE] = "Connection Successful.";
 	char deny_con[BUFFER_SIZE] = "Connection Denied.";
 	char busy[BUFFER_SIZE] = "This user is currently not available :(";
@@ -48,13 +48,16 @@ bool User::select_user(fd_set & fds, timespec & tv)
 	char asking_partner[BUFFER_SIZE] = " found, asking them now";
 	char name[BUFFER_SIZE];
 	char yes_no[BUFFER_SIZE];
+	char only_code[1];
 	int status;
 	bool matched = false;
 	bool request_ongoing = true;
 	int bad_responses = 0;
 	fd_set temp_fds;
 	tv.tv_sec = 2;
-	send_buffer(_uid, from_server, strlen(from_server), false);
+
+	memset(only_code, 0, 1);
+	send_buffer(_uid, only_code, strlen(only_code), false, GET_PARTNER);
 
 	set_not_busy(_vect_index);
 	//Continue looping until client sends name of user they want to chat with OR connection requested is true
@@ -73,7 +76,7 @@ bool User::select_user(fd_set & fds, timespec & tv)
 		int requester_index = get_requester_name(_vect_index, name);
 		char request_approval[BUFFER_SIZE];
 		concatChars(request_approval, name, conRequested);
-		send_buffer(_uid, request_approval, strlen(request_approval), false);
+		send_buffer(_uid, name, strlen(name), false, PARTNER_HAS_REQUESTED);
 
 		do
 		{
@@ -85,7 +88,7 @@ bool User::select_user(fd_set & fds, timespec & tv)
 			if ((status == 0) || (bad_responses > 2))
 			{
 				timeout_request(requester_index);
-				send_buffer(_uid, timeout_err, strlen(timeout_err), false);
+				send_buffer(_uid, only_code, strlen(only_code), false, TIMEOUT);
 				sleep(0.5);
 				request_ongoing = false;
 			}
@@ -108,7 +111,7 @@ bool User::select_user(fd_set & fds, timespec & tv)
 				{
 					accept_request(_vect_index, requester_index);
 					sleep(2);//Give time for other thread to notice and set connection_index
-					send_buffer(_uid, successful_con, strlen(successful_con), false);
+					send_buffer(_uid, only_code, strlen(only_code), false, CONN_MADE);
 					matched = true;
 					request_ongoing = false;
 				}
@@ -117,7 +120,7 @@ bool User::select_user(fd_set & fds, timespec & tv)
 				else if ((yes_no[0] == 'N') || (yes_no[0] == 'n'))
 				{
 					deny_request(requester_index);
-					send_buffer(_uid, deny_con, strlen(deny_con), false);
+					send_buffer(_uid, only_code, strlen(only_code), false, CONN_DENIED);
 					sleep(0.5);
 					request_ongoing = false;
 				}
@@ -125,10 +128,7 @@ bool User::select_user(fd_set & fds, timespec & tv)
 				//Invalid response
 				else
 				{
-					char copy_invalid_response[BUFFER_SIZE];
-					memset(copy_invalid_response, 0, sizeof copy_invalid_response);
-					strncpy(copy_invalid_response, invalid_response, strlen(invalid_response));
-					send_buffer(_uid, copy_invalid_response, strlen(copy_invalid_response), false);
+					send_buffer(_uid, only_code, strlen(only_code), false, BAD_RESPONSE);
 					bad_responses++;
 				}
 			}
@@ -157,16 +157,14 @@ bool User::select_user(fd_set & fds, timespec & tv)
 			//Partner is busy and cannot be requested
 			if (!request_partner(_vect_index, partner_index))
 			{
-				send_buffer(_uid, busy, strlen(busy), false);
-				sleep(0.5);
+				send_buffer(_uid, only_code , strlen(only_code), false, NOT_AVAIL);
+				sleep(1);
 			}
 
 			//Partner available and request flag set
 			else
 			{
-				char final_asking[BUFFER_SIZE];
-				concatChars(final_asking, name, asking_partner);
-				send_buffer(_uid, final_asking, strlen(final_asking), false);
+				send_buffer(_uid, only_code, strlen(only_code), false, PARTNER_FOUND);
 
 				//Continue checking if own connection_requested written to by potential partner or timeout
 				//It's initialized as its index in infoShare vector
@@ -180,8 +178,8 @@ bool User::select_user(fd_set & fds, timespec & tv)
 				//Potential partner has denied request
 				if (status == -1)
 				{
-					send_buffer(_uid, deny_con, strlen(successful_con), false);
-					sleep(0.5);
+					send_buffer(_uid, only_code, strlen(only_code), false, CONN_DENIED);
+					sleep(1);
 					failed_request_reset(_vect_index, partner_index);
 				}
 
@@ -189,15 +187,15 @@ bool User::select_user(fd_set & fds, timespec & tv)
 				else if (status == partner_index)
 				{
 					set_connection(_vect_index, partner_index);
-					send_buffer(_uid, successful_con, strlen(successful_con), false);
+					send_buffer(_uid, only_code, strlen(only_code), false, CONN_MADE);
 					matched = true;
 				}
 
 				//Request has timed out
 				else if (status == -2)
 				{
-					send_buffer(_uid, timeout_err, strlen(timeout_err), false);
-					sleep(0.5);
+					send_buffer(_uid, only_code, strlen(only_code), false, TIMEOUT);
+					sleep(1);
 					failed_request_reset(_vect_index, partner_index);
 				}
 
@@ -207,7 +205,7 @@ bool User::select_user(fd_set & fds, timespec & tv)
 		//Potential partner name not found
 		else
 		{
-			send_buffer(_uid, bad_name, strlen(bad_name), false);
+			send_buffer(_uid, only_code, strlen(only_code), false, PARTNER_DNE);
 		}
 
 	}
@@ -217,30 +215,33 @@ bool User::select_user(fd_set & fds, timespec & tv)
 
 void User::enter_name()
 {
-	char enter_name[BUFFER_SIZE] = "Enter your username: ";
-	char not_unique[BUFFER_SIZE] = "The username you entered is already taken. Try again.";
-	char unique[BUFFER_SIZE] = "Valid username!";
+	char only_code[BUFFER_SIZE];
 	char name[BUFFER_SIZE];
 	bool valid_name = true;
 
 	do
 	{
 		valid_name = true;
-		send_buffer(_uid, enter_name, strlen(enter_name), false);
+		memset(only_code, 0, BUFFER_SIZE);
+		send_buffer(_uid, only_code, strlen(only_code), false, UNAME_REQUEST);
+		
 		memset(name, 0, sizeof name);
 		receive(_uid, name, BUFFER_SIZE);
-
 		//No other user has this name
 		if (name_in_set(name, _uid) == -1)
 		{
+		
 			add_to_set(name, _vect_index, _uid);
-			send_buffer(_uid, unique, strlen(unique), false);
+			memset(only_code, 0, BUFFER_SIZE);
+			send_buffer(_uid, only_code, strlen(only_code), false, UNAME_VALID);
 		}
 
 		//Other user has this name
 		else
 		{
-			send_buffer(_uid, not_unique, strlen(not_unique), false);
+			memset(only_code, 0, BUFFER_SIZE);
+			send_buffer(_uid, only_code, strlen(only_code), false, UNAME_TAKEN);
+			sleep(1);
 			valid_name = false;
 		}
 
@@ -300,7 +301,7 @@ void User::handle_messages()
 			receive(_uid, message, BUFFER_SIZE);
 
 			//Send contents of message buffer to partner
-			send_buffer(partner_sock, message, strlen(message), false);
+			send_buffer(partner_sock, message, strlen(message), true);
 		}
 
 		//Partner has sent message
@@ -308,9 +309,9 @@ void User::handle_messages()
 		{
 			//Write partner's message into message buffer
 			receive(partner_sock, message, BUFFER_SIZE);
-
+			printf("%s\n", message);
 			//Send contenets of message buffer to partner
-			send_buffer(_uid, message, strlen(message), false);
+			send_buffer(_uid, message, strlen(message), true);
 		}
 
 		//handle lost connection

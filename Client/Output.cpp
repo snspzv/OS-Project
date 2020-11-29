@@ -6,17 +6,18 @@
 #include <cstring>
 #include <sys/types.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 void write_to_log(char* message, int message_fd, char* name, bool from_self)
 {
 	char tabs[7];
 	int output_i(0), name_i(0), message_i(0);
-	int chars = (strlen(message) + strlen(name));
+	int chars = (strlen(message) + strlen(name) + 2);
 	int lines = chars / CHAR_LIMIT;
 	char output[50];
 
 	memset(tabs, '\t', sizeof tabs);
-
+	printf("%s\n", message);
 	while (lines >= 0)
 	{
 		//clear output buffer
@@ -29,7 +30,7 @@ void write_to_log(char* message, int message_fd, char* name, bool from_self)
 		}
 
 		//copy name to output buffer
-		while (name_i < strlen(name))
+		while (name_i < (strlen(name) + 2))
 		{
 			//insert newline if output buffer is on last character and start loop over
 			if (output_i == 49)
@@ -40,14 +41,28 @@ void write_to_log(char* message, int message_fd, char* name, bool from_self)
 				break;
 			}
 
-			//normal case - copy char from name buffer to output buffer and increment both
-			output[output_i] = name[name_i];
+			else if (output_i == strlen(name))
+			{
+				output[output_i] = ':';
+			}
+
+			else if (output_i == (strlen(name) + 1))
+			{
+				output[output_i] = ' ';
+			}
+
+			//normal case - copy char from name buffer to output buffer 
+			else
+			{
+				output[output_i] = name[name_i];
+			}
+			
 			output_i++;
 			name_i++;
 		}
 
 		//copy message to output buffer
-		while ((message_i < strlen(message)) && (name_i == strlen(name)))
+		while ((message_i < strlen(message)) && (name_i == strlen(name) + 2))
 		{
 			//insert newline if output buffer is on last character and start loop over
 			if (output_i == 49)
@@ -80,8 +95,7 @@ void write_to_log(char* message, int message_fd, char* name, bool from_self)
 		write(message_fd, output, strlen(output));
 		fdatasync(message_fd);
 		memset(output, 0, sizeof message);
-		lseek(message_fd, -4, SEEK_CUR);
+		//lseek(message_fd, -4, SEEK_CUR);
 	}
 
-	//system("iconv - f utf - 8 - t utf - 8 - c messages.log");
 }

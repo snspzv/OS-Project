@@ -21,7 +21,7 @@ void concatChars(char* dest, char* first, char* second)
 }
 
 
-void concatChars(char* dest, char* name, char* message, bool partner_message)
+/*void concatChars(char* dest, char* name, char* message, bool partner_message)
 {
 	int index = 0;
 	int nl_count = 0;
@@ -31,4 +31,4 @@ void concatChars(char* dest, char* name, char* message, bool partner_message)
 	{
 		for
 	}
-}
+}*/
