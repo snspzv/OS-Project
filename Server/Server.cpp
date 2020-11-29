@@ -19,6 +19,7 @@ int main(int argc, char const *argv[])
     char buffer[1024] = {0};
     fd_set readfds; // set of socket descriptors
 
+
     // Creating socket file descriptor using IP and TCP (sock_stream with 3rd option 0 defaults to TCP)
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
     {

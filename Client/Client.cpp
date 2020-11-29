@@ -13,6 +13,8 @@
 #include "sendRecv.h"
 #include "Constants.h"
 #include "Output.h"
+#include "rx.h"
+#include "tx.h"
 
 
 int main(int argc, char const *argv[])
@@ -20,6 +22,7 @@ int main(int argc, char const *argv[])
     
     char message[1024];
     char name[1024];
+    char partner_name[1024];
     char server_message[1024];
     int sock_fd = 0, valread, message_fd;
     struct sockaddr_in serv_addr;
@@ -30,6 +33,7 @@ int main(int argc, char const *argv[])
     fd_set temp_fds;
     int status;
     struct timespec tv;
+    bool no_partner = true;
 
     if ((sock_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
@@ -59,13 +63,50 @@ int main(int argc, char const *argv[])
 
     //Open log file in write only mode, truncate to 0 bytes if exists, and create if it does not exist
     message_fd = open("./messages.log", O_WRONLY | O_TRUNC | O_CREAT);
-    strcpy(message, "This is a test message of  over 50 characters vsdakn vsdakjn testing testing teting akndf dsk dlk  geskklsdf lkfads lkndsf;akn fs kldsfn nkl");
-    strcpy(name, "SAM");
-    
-    write_to_log(message, message_fd, name, true);
-    write_to_log(message, message_fd, name, false);
+    //strcpy(message, "This is a test message of  over 50 characters vsdakn vsdakjn testing testing teting akndf dsk dlk  geskklsdf lkfads lkndsf;akn fs kldsfn nkl");
+    //strcpy(name, "SAM");
+    //system("cmd.exe /c start cmd.exe /c wsl.exe tail -F messages.log");
+    //write_to_log(message, message_fd, name, true);
+    //write_to_log(message, message_fd, name, false);
+    //write_to_log(message, message_fd, name, true);
     //Wait until server gives ok on username
-    do
+    int next = RX_NEXT;
+    bool tx_user_message = false;
+    bool entering_name = false;
+    memset(name, 0, BUFFER_SIZE);
+
+    while (true)
+    {
+        while (next == RX_NEXT)
+        {
+            next = incoming(sock_fd, partner_name, message_fd, tx_user_message, entering_name);
+        }
+
+        while (next == TX_NEXT)
+        {
+            next = outgoing(sock_fd, tx_user_message, name, message_fd, entering_name, partner_name);
+        }
+
+        if(next == EITHER_NEXT)
+        {
+            temp_fds = fds;
+            status = pselect(max_fd + 1, &temp_fds, NULL, NULL, NULL, NULL);
+        
+            //User input
+            if (FD_ISSET(STDIN_FILENO, &temp_fds))
+            {
+                next = TX_NEXT;
+            }
+
+            //Incoming message
+            else if (FD_ISSET(sock_fd, &temp_fds))
+            {
+                next = RX_NEXT;
+            }
+        }
+    }
+    
+    /*do
     {
         //Asking for username
         receive(sock_fd);
@@ -105,35 +146,25 @@ int main(int argc, char const *argv[])
         //Other user wants to become messaging partner
         else if (FD_ISSET(sock_fd, &temp_fds))
         {
+            //Name of user who wants to message
             receive(sock_fd);
 
-            temp_fds = fds;
-            status = pselect(max_fd + 1, &temp_fds, NULL, NULL, NULL, NULL);
-            //User has entered message to be sent
-            if (FD_ISSET(STDIN_FILENO, &temp_fds))
-            {
-                //Read message from STDIN and write to message buffer
-                receive(STDIN_FILENO, message, sizeof message);
+            //Resonse sent back
+            send_buffer(sock_fd, false);
 
-                //Send name in message buffer to server
-                send_buffer(sock_fd, message, strlen(message), true);
-            }
+            //Connection status
+            receive(sock_fd);
 
-            else if (FD_ISSET(sock_fd, &temp_fds))
-            {
-                //Read message from sock_fd and write to STDOUT
-                receive(sock_fd);
-            }
-            //send_buffer(sock_fd, true);
         }
 
 
 
-    } while (false);
+    } while (no_partner);
 
-        
+
+
     //Open new window to show conversation
-    system("./new_window.sh");
+    //system("cmd.exe /c start cmd.exe /c wsl.exe tail -F messages.log");
     int wr;
 
     while(1)
@@ -163,7 +194,7 @@ int main(int argc, char const *argv[])
             //flush buffer associated with message_fd to ensure that contents are immediately written to messages.log
             fdatasync(message_fd);
         }
-    }
+    }*/
 
 
     return 0;
