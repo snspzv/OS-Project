@@ -38,6 +38,11 @@ int outgoing(int sock_fd, bool tx_user_message, char *name, int log_fd, bool & e
 			ret = EITHER_NEXT;
 		}
 
+		//Answering if they want to connect with user or not
+		else
+		{
+			ret = RX_NEXT;
+		}
 
 		//Send contents of message buffer to server
 		send_buffer(sock_fd, message, strlen(message), true);

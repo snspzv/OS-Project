@@ -68,6 +68,7 @@ int incoming(int sock_fd, char partner_name[], int log_fd, bool & tx_user_messag
 				cp_partner_name(partner_name, message);
 				print_sm(PARTNER_HAS_REQUESTED, partner_name);
 				tx_user_message = false;
+				entering_name = false;
 				return TX_NEXT;
 
 			case PARTNER_DNE:
@@ -104,8 +105,8 @@ int incoming(int sock_fd, char partner_name[], int log_fd, bool & tx_user_messag
 	}
 
 	//User message
-	else if ((message[strlen(message) - 1]) == 'U')
-	{
+	//else if ((message[strlen(message) - 1]) == 'U')
+	//{
 		//printf("TEST\n");
 		//Read message from sock_fd and write to message buffer
 		//receive(sock_fd, message, sizeof message);
@@ -117,8 +118,8 @@ int incoming(int sock_fd, char partner_name[], int log_fd, bool & tx_user_messag
 		fdatasync(log_fd);
 
 		return EITHER_NEXT;
-	}
+	//}
 
 
-	return 0;
+	//return 0;
 }
