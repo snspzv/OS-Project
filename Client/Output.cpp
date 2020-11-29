@@ -17,7 +17,7 @@ void write_to_log(char* message, int message_fd, char* name, bool from_self)
 	char output[50];
 
 	memset(tabs, '\t', sizeof tabs);
-	printf("%s\n", message);
+
 	while (lines >= 0)
 	{
 		//clear output buffer
