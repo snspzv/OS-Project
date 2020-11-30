@@ -37,17 +37,7 @@ User::User()
 
 bool User::select_user(fd_set & fds, timespec & tv)
 {
-	char from_server[BUFFER_SIZE] = "Wait for a connection or enter the name of the user you'd like to message: ";
-	char conRequested[BUFFER_SIZE] = " has requested to message with you. Do you want to message them?(y/n) ";
-	char bad_name[BUFFER_SIZE] = "Invalid name. Try again";
-	char successful_con[BUFFER_SIZE] = "Connection Successful.";
-	char deny_con[BUFFER_SIZE] = "Connection Denied.";
-	char busy[BUFFER_SIZE] = "This user is currently not available :(";
-	char timeout_err[BUFFER_SIZE] = "Your request has timed out";
-	char invalid_response[BUFFER_SIZE] = "Invalid response. Please answer 'y' or 'n'";
-	char asking_partner[BUFFER_SIZE] = " found, asking them now";
 	char name[BUFFER_SIZE];
-	char yes_no[BUFFER_SIZE];
 	char only_code[1];
 	int status;
 	bool matched = false;
@@ -65,7 +55,6 @@ bool User::select_user(fd_set & fds, timespec & tv)
 	{
 		temp_fds = fds;
 		status = pselect(_uid + 1, &temp_fds, NULL, NULL, &tv, NULL);
-		//printf("%d\n", status);
 	} while ((status == 0) && (is_not_busy(_vect_index)));
 
 
@@ -309,7 +298,6 @@ void User::handle_messages()
 		{
 			//Write partner's message into message buffer
 			receive(partner_sock, message, BUFFER_SIZE);
-			printf("%s\n", message);
 			//Send contenets of message buffer to partner
 			send_buffer(_uid, message, strlen(message), true);
 		}
