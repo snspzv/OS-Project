@@ -104,22 +104,15 @@ int incoming(int sock_fd, char partner_name[], int log_fd, bool & tx_user_messag
 
 	}
 
-	//User message
-	//else if ((message[strlen(message) - 1]) == 'U')
-	//{
-		//printf("TEST\n");
-		//Read message from sock_fd and write to message buffer
-		//receive(sock_fd, message, sizeof message);
-		tx_user_message = true;
-		//Output to log file
-		write_to_log(message, log_fd, partner_name, true);
+	//User is sending message
+	
+	tx_user_message = true;
+	//Output to log file
+	write_to_log(message, log_fd, partner_name, true);
 
-		//flush buffer associated with message_fd to ensure that contents are immediately written to messages.log
-		fdatasync(log_fd);
+	//flush buffer associated with message_fd to ensure that contents are immediately written to messages.log
+	fdatasync(log_fd);
 
-		return EITHER_NEXT;
-	//}
+	return EITHER_NEXT;
 
-
-	//return 0;
 }
