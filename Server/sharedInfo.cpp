@@ -14,7 +14,7 @@ int name_in_set(char* check_name, int socket)
 	int index = 0;
 
 	for (auto& info : info_vect)
-	{	
+	{
 		//check if any names match AND that name is not being compared to its own sharedInfo
 		if ((strcmp(check_name, info.name) == 0) && (info.sock_fd != socket))
 		{
@@ -40,6 +40,7 @@ void add_to_set(char* name_in, int vect_index, int socket)
 		info_vect.push_back(userInfo);
 	}
 
+	//Copys the user info into the vector of information
 	strncpy(info_vect[vect_index].name, name_in, strlen(name_in));
 
 	info_vect[vect_index].sock_fd = socket;
@@ -110,7 +111,7 @@ int get_requester_name(int vect_index, char* requester_name)
 {
 	///will be released when out of scope
 	std::lock_guard<std::mutex> lock(info_mtx);
-	
+
 	memset(requester_name, 0, sizeof requester_name);
 
 	int requester_index = info_vect[vect_index].connection_requested;
@@ -153,7 +154,7 @@ void set_connection(int vect_index, int partner_index)
 
 	info_vect[vect_index].connection_index = partner_index;
 	info_vect[partner_index].connection_index = vect_index;
-	
+
 	return;
 }
 
@@ -161,7 +162,7 @@ int get_partner_sock(int vect_index)
 {
 	///will be released when out of scope
 	std::lock_guard<std::mutex> lock(info_mtx);
-	
+
 	int partner_index = info_vect[vect_index].connection_index;
 	return info_vect[partner_index].sock_fd;
 }
@@ -173,6 +174,3 @@ bool connection_active(int vect_index)
 
 	return true;
 }
-
-
-

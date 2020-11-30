@@ -29,8 +29,9 @@ void send_buffer(int sock_fd, char *message, int size, bool from_user, int code)
     sent_from(from_user, to_send);
     send(sock_fd, to_send, strlen(to_send), 0);
 
-    
+
 }
+
 void send_buffer(int sock_fd, char* message, int size, bool from_user)
 {
     sent_from(from_user, message);
@@ -39,7 +40,7 @@ void send_buffer(int sock_fd, char* message, int size, bool from_user)
 
 
 
-void receive(int sock_fd) //receives return bools as well
+void receive(int sock_fd)
 {
     char message[BUFFER_SIZE];
     memset(message, 0, sizeof message);
