@@ -68,12 +68,7 @@ int main(int argc, char const *argv[])
 
     //Open log file in write only mode, truncate to 0 bytes if exists, and create if it does not exist
     message_fd = open("./messages.log", O_WRONLY | O_TRUNC | O_CREAT);
-    //strcpy(message, "This is a test message of  over 50 characters vsdakn vsdakjn testing testing teting akndf dsk dlk  geskklsdf lkfads lkndsf;akn fs kldsfn nkl");
-    //strcpy(name, "SAM");
-    //system("cmd.exe /c start cmd.exe /c wsl.exe tail -F messages.log");
-    //write_to_log(message, message_fd, name, true);
-    //write_to_log(message, message_fd, name, false);
-    //write_to_log(message, message_fd, name, true);
+
     //Wait until server gives ok on username
     int next = RX_NEXT; //An integer which controls if the client will transmit or recieve a message next
     bool tx_user_message = false; //boolean to keep track of if a user transmitted a message
@@ -117,97 +112,6 @@ int main(int argc, char const *argv[])
             }
         }
     }
-
-    /*do
-    {
-        //Asking for username
-        receive(sock_fd);
-        //Sending username
-        send_buffer(sock_fd, true);
-        //Receive feedback on uniqueness of username
-        receive(sock_fd, server_message, sizeof server_message);
-        printf("%s\n", server_message);
-
-    } while (server_message[0] == 'T');
-
-    //get messaging partner set up
-    do
-    {
-        //Send user to talk to OR wait for other user to connect
-        receive(sock_fd);
-
-        //wait on STDIN or socket with no timeout
-        temp_fds = fds;
-        status = pselect(max_fd + 1, &temp_fds, NULL, NULL, NULL, NULL);
-
-        //User has entered name of potential messaging partner
-        if (FD_ISSET(STDIN_FILENO, &temp_fds))
-        {
-            //Read name from STDIN and write to message buffer
-            receive(STDIN_FILENO, message, sizeof message);
-
-            //Send name in message buffer to server
-            send_buffer(sock_fd, message, strlen(message), true);
-
-            receive(sock_fd);
-
-            //Server notifies if connection is made or not
-            receive(sock_fd);
-        }
-
-        //Other user wants to become messaging partner
-        else if (FD_ISSET(sock_fd, &temp_fds))
-        {
-            //Name of user who wants to message
-            receive(sock_fd);
-
-            //Resonse sent back
-            send_buffer(sock_fd, false);
-
-            //Connection status
-            receive(sock_fd);
-
-        }
-
-
-
-    } while (no_partner);
-
-
-
-    //Open new window to show conversation
-    //system("cmd.exe /c start cmd.exe /c wsl.exe tail -F messages.log");
-    int wr;
-
-    while(1)
-    {
-        //wait on STDIN or socket with no timeout
-        temp_fds = fds;
-        status = pselect(max_fd + 1, &temp_fds, NULL, NULL, NULL, NULL);
-
-        //User has entered message to be sent
-        if (FD_ISSET(STDIN_FILENO, &temp_fds))
-        {
-            //Read message from STDIN and write to message buffer
-            receive(STDIN_FILENO, message, sizeof message);
-
-            //Send name in message buffer to server
-            send_buffer(sock_fd, message, strlen(message), true);
-        }
-
-        else if (FD_ISSET(sock_fd, &temp_fds))
-        {
-            //Read message from sock_fd and write to message buffer
-            receive(sock_fd, message, sizeof message);
-
-            //write message buffer to messages.log
-            wr = write(message_fd, message, strlen(message));
-
-            //flush buffer associated with message_fd to ensure that contents are immediately written to messages.log
-            fdatasync(message_fd);
-        }
-    }*/
-
 
     return 0;
 }
