@@ -53,11 +53,6 @@ void manageConnection(void* arg)
         user_count++;
     }
 
-    //add in error message for too many users
-    /*else
-    {
-        send()
-    }*/
 
     printf("%s is connected, client_fd id %d\n", thisUser.get_name(), client_fd);
 
