@@ -281,7 +281,7 @@ void User::handle_messages()
 		{
 			temp_fds = fds;
 			status = pselect(max_fd + 1, &temp_fds, NULL, NULL, &tv, NULL);
-		} while ((select == 0) && (connection_active(_vect_index)));
+		} while ((status == 0) && (connection_active(_vect_index)));
 
 		//User has sent message
 		if (FD_ISSET(_uid, &temp_fds))
