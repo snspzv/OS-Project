@@ -12,5 +12,6 @@ char servMessages[20][1024] = {
 	"This user is currently not available :(",
 	"Your request has timed out",
 	"Invalid response. Please answer 'y' or 'n'",
-	" found, asking them now"
+	" found, asking them now",
+	"Partner disconnected."
 };

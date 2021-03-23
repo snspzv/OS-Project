@@ -23,6 +23,12 @@
 #define TIMEOUT 10
 #define BAD_RESPONSE 11
 #define PARTNER_FOUND 12
+#define PARTNER_DISCONNECT 13
+
+//Client Control Messages
+#define UNAME 0
+#define PARTNER_REQUEST 1
+#define REQUEST_RESPONSE 2
 
 //Client options
 #define RX_NEXT 0

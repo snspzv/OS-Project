@@ -12,9 +12,12 @@
 #include <mutex>
 #include <iostream>
 #include <vector>
+#include <map>
+#include <algorithm>
 
-
-
+extern std::map<int, User> users;
+extern std::mutex users_mtx;
+extern bool usersChanged;
 std::mutex index_mtx;
 int userIndex = 0;
 
@@ -67,10 +70,9 @@ void manageConnection(void* arg)
     //Wait until matched with messaging partner
     while(!thisUser.select_user(fds, tv));
     
-    //Main messaging loop
-    thisUser.handle_messages();
-
-
+    users[client_fd] = thisUser;
+    usersChanged = true;
+    //thisUser.handle_messages();
 }
 
 

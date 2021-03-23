@@ -11,6 +11,8 @@ class User {
 		char _name[1024];
 		bool _connection_requested;
 		int _request_accepted;
+		int _state;
+		int _request_uid;
 
 	public:
 		User();
@@ -21,5 +23,10 @@ class User {
 		void set_vect_index(int vi);
 		int get_vect_index();
 		void handle_messages();
-
+		int get_socket();
+		int get_partner_socket();
+		void set_partner_socket(int p);
+		void set_state(int state);
+		int get_state();
+		void handleIncoming();
 };
