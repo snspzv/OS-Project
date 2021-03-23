@@ -9,8 +9,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/types.h>
-#include "wait.h"
-#include "sendRecv.h"
 #include "Constants.h"
 #include "Output.h"
 #include "rx.h"
@@ -28,11 +26,9 @@ int main(int argc, char const *argv[])
     struct sockaddr_in serv_addr;
     char buffer[1024] = {0};
     int max_fd;
-    std::vector<int> fds_vect;
     fd_set fds;
     fd_set temp_fds;
     int status;
-    struct timespec tv;
     bool no_partner = true;
 
     if ((sock_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
@@ -57,9 +53,12 @@ int main(int argc, char const *argv[])
         return -1;
     }
 
-    fds_vect.push_back(sock_fd);
-    fds_vect.push_back(STDIN_FILENO);
-    max_fd = init_fd_set(fds_vect, SELECT_TIMEOUT_S, SELECT_TIMEOUT_NS, fds, tv);
+    FD_ZERO(&fds);
+    FD_SET(sock_fd, &fds);
+    FD_SET(STDIN_FILENO, &fds);
+
+    max_fd = sock_fd;
+
 
     //Open log file in write only mode, truncate to 0 bytes if exists, and create if it does not exist
     message_fd = open("./messages.log", O_WRONLY | O_TRUNC | O_CREAT);

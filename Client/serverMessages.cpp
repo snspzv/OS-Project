@@ -1,5 +1,3 @@
-
-
 char servMessages[20][1024] = {
 	"Enter your username: ",
 	"The username you entered is already taken. Try again.",

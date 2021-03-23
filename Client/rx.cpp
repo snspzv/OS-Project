@@ -1,7 +1,5 @@
 #include "rx.h"
 #include "Constants.h"
-#include "sendRecv.h"
-#include "concatChars.h"
 #include "Output.h"
 #include <cstring>
 #include <stdio.h>

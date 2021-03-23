@@ -1,6 +1,5 @@
 #include "tx.h"
 #include "Constants.h"
-#include "sendRecv.h"
 #include "Output.h"
 #include <cstring>
 #include <unistd.h>

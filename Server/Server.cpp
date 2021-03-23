@@ -7,18 +7,15 @@
 #include <thread>
 #include <sys/time.h>
 #include <sys/select.h>
-#include "handleConnections.h"
 #include "Constants.h"
 #include "wait.h"
 #include <map>
-#include "sendRecv.h"
 #include <iterator>
 #include <algorithm>
 #include "User.h"
 #include <mutex>
 std::map<int, User> users;
-std::mutex users_mtx;
-bool usersChanged = false;
+
 
 int main(int argc, char const *argv[])
 {
@@ -37,7 +34,6 @@ int main(int argc, char const *argv[])
         exit(EXIT_FAILURE);
     }
 
-    //printf("%d\n", server_fd);
 
     // SOL_SOCKET - socket at API level
     // SO_REUSEADDR and SO_REUSEPORT - allows address and port to have multiple sockets
@@ -70,21 +66,16 @@ int main(int argc, char const *argv[])
     int i = 0;
 
     fd_set fds;
-    struct timespec tv;
-    std::vector<int> fds_vect = { server_fd };
-    int max_fd = init_fd_set(fds_vect, SELECT_TIMEOUT_S, SELECT_TIMEOUT_NS, fds, tv);
-    int min_fd = max_fd;
+    //struct timespec tv;
+    //std::vector<int> fds_vect = { server_fd };
+    //int max_fd = init_fd_set(fds_vect, SELECT_TIMEOUT_S, SELECT_TIMEOUT_NS, fds, tv);
+    FD_ZERO(&fds);
+    FD_SET(server_fd, &fds);
+    int max_fd = server_fd;
     int ready_count;
-    //std::map<int, User> usersCopy = users;
+
     while (1)
     {
-        //if (usersChanged)
-        //{
-        //    usersCopy = users;
-        //    usersChanged = false;
-        //    printf("HERE\n");
-        //}
-
         fd_set temp_fds = fds;
         ready_count = pselect(max_fd + 1, &temp_fds, NULL, NULL, NULL, NULL);
         printf("Ready count: %d\n", ready_count);
