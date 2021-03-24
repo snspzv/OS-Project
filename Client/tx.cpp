@@ -6,7 +6,9 @@
 #include <stdio.h>
 #include <sys/socket.h>
 
-int outgoing(int sock_fd, bool tx_user_message, char *name, int log_fd, bool & entering_name, char * partner_name)
+extern int log_fd;
+
+int outgoing(int sock_fd, bool tx_user_message, char *name, bool & entering_name, char * partner_name)
 {
 	char message[1024];
 	memset(message, 0, 1024);

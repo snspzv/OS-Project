@@ -105,7 +105,6 @@ int main(int argc, char const *argv[])
 
             if (FD_ISSET(server_fd, &temp_fds))
             {
-                printf("Init!\n");
                 new_socket = accept(server_fd, (struct sockaddr*) & address, (socklen_t*)&addrlen);
                 users[new_socket] = User(new_socket);
                 users[new_socket].handleIncoming();

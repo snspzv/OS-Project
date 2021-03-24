@@ -5,6 +5,10 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+int log_fd;
 
 void cp_partner_name(char dest[], char src[])
 {
@@ -33,11 +37,13 @@ void print_sm(int index, char prepend[])
 	return;
 }
 
-int incoming(int sock_fd, char partner_name[], int log_fd, bool & tx_user_message, bool & entering_name)
+int incoming(int sock_fd, char partner_name[], bool & tx_user_message, bool & entering_name)
 {
 	char message[BUFFER_SIZE];
 	memset(message, 0, sizeof message);
 	extern const char servMessages[20][BUFFER_SIZE];
+	char log_file[BUFFER_SIZE] = "messages";
+	char command[BUFFER_SIZE] = "cmd.exe /c start cmd.exe /c wsl.exe tail -F ";
 	
 	tx_user_message = false;
 	//Server Message
@@ -80,7 +86,11 @@ int incoming(int sock_fd, char partner_name[], int log_fd, bool & tx_user_messag
 
 			case CONN_MADE:
 				print_sm(CONN_MADE);
-				system("cmd.exe /c start cmd.exe /c wsl.exe tail -F messages.log");
+				strncat(log_file, partner_name, strlen(partner_name));
+				strcat(log_file, ".log");
+				strncat(command, log_file, strlen(log_file));
+				log_fd = open(log_file, O_WRONLY | O_CREAT, 0600);
+				system(command);
 				system("sleep 1s && clear");
 				tx_user_message = true;
 				return EITHER_NEXT;

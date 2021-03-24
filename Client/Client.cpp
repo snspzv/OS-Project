@@ -59,9 +59,9 @@ int main(int argc, char const *argv[])
 
     max_fd = sock_fd;
 
-
+    
     //Open log file in write only mode, truncate to 0 bytes if exists, and create if it does not exist
-    message_fd = open("./messages.log", O_WRONLY | O_TRUNC | O_CREAT, 0666);
+    //message_fd = open("./messages.log", O_WRONLY | O_TRUNC | O_CREAT, 0666);
     int next = RX_NEXT;
     bool tx_user_message = false;
     bool entering_name = false;
@@ -72,12 +72,12 @@ int main(int argc, char const *argv[])
     {
         while (next == RX_NEXT)
         {
-            next = incoming(sock_fd, partner_name, message_fd, tx_user_message, entering_name);
+            next = incoming(sock_fd, partner_name, tx_user_message, entering_name);
         }
 
         while (next == TX_NEXT)
         {
-            next = outgoing(sock_fd, tx_user_message, name, message_fd, entering_name, partner_name);
+            next = outgoing(sock_fd, tx_user_message, name, entering_name, partner_name);
             system("clear");
         }
 
