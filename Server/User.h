@@ -18,7 +18,7 @@ class User {
 		int get_socket();
 		int get_partner_socket();
 		void set_partner_socket(int p);
-		void set_state(int state);
 		int get_state();
-		void handleIncoming();
+		void set_state(int state);
+		bool handleIncoming();
 };

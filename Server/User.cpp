@@ -62,22 +62,23 @@ int User::get_state()
 	return _state;
 }
 
-void User::handleIncoming()
+bool User::handleIncoming()
 {
 	char messageOut[BUFFER_SIZE] = {};
 	char messageIn[BUFFER_SIZE] = {};
+	bool socket_connected = true;
 	recv(_uid, messageIn, BUFFER_SIZE, MSG_PEEK | MSG_DONTWAIT);
-	printf("Message Size: %ld\n", strlen(messageIn));
+
 	if ((strlen(messageIn) == 0) && (_state != START))
 	{
 		_state = DISCONNECTED;
+		socket_connected = false;
 	}
-	//printf("Beginning State: %d\n", _state);
+
 	switch (_state)
 	{
 		case START:
 		{
-			//printf("Start %d\n", _uid);
 			messageOut[0] = UNAME_REQUEST;
 			send(_uid, messageOut, strlen(messageOut), 0);
 			_state = ASKING_FOR_USERNAME;
@@ -128,13 +129,10 @@ void User::handleIncoming()
 		
 		case ASKING_FOR_CONVO_PARTNER:
 		{
-			printf("\t\t\tAsking for convo partner %d\n", _uid);
 			read(_uid, messageIn, BUFFER_SIZE);
-			
 			char requested_name[BUFFER_SIZE];
 			memset(requested_name, 0, sizeof requested_name);
 			strncpy(requested_name, messageIn, strlen(messageIn) - 1);
-			printf("\t\t\tAfter reading\n");
 			bool partner_found = false;
 
 			for (auto& user : users)
@@ -164,7 +162,6 @@ void User::handleIncoming()
 						user.second.set_state(PARTNER_REQUESTING);
 						_state = PARTNER_REQUESTED;
 						_connected_uid = user.second.get_socket();
-						printf("_uid: %d\n_connected_uid: %d\n", _uid, _connected_uid);
 					}
 					break;
 				}
@@ -219,14 +216,18 @@ void User::handleIncoming()
 			break;
 		}
 			
-		//case DISCONNECTED:
-		//	//Is currently in conversation
-		//	if (_connected_uid != 0)
-		//	{
-		//		mem
-		//		send(_connected_uid, )
-		//	}
-				
+		case DISCONNECTED:
+			//Is currently in conversation
+			if (_connected_uid != 0)
+			{
+				messageOut[0] = PARTNER_DISCONNECT;
+				users[_connected_uid].set_state(ASKING_FOR_CONVO_PARTNER);
+				send(_connected_uid, messageOut, strlen(messageOut), 0);
+				messageOut[0] = GET_PARTNER;
+				sleep(1);
+				send(_connected_uid, messageOut, strlen(messageOut), 0);
+			}
 	}
-	//printf("Ending State: %d\n", _state);
+
+	return socket_connected;
 }

@@ -77,26 +77,32 @@ int main(int argc, char const *argv[])
     while (1)
     {
         fd_set temp_fds = fds;
+        std::vector<int> dead_sockets;
         ready_count = pselect(max_fd + 1, &temp_fds, NULL, NULL, NULL, NULL);
-        printf("Ready count: %d\n", ready_count);
         if (ready_count > 0)
         {
             for (auto &connection : users)
             {
-                printf("\tConnection fd: %d\n", connection.first);
                 if (FD_ISSET(connection.first, &temp_fds))
                 {
-                    printf("\t\tBefore\n");
-                    connection.second.handleIncoming();
-                    printf("\t\tAfter\n");
+                    if(!connection.second.handleIncoming())
+                    {
+                        dead_sockets.push_back(connection.first);
+                    }
                     ready_count--;
-                    //printf("After exit state1 of %d: %d\n",connection.first, connection.second.get_state());
                 }
                 
                 if (ready_count == 0)
                     break;
             }
-            //printf("After exit state2: %d\n", users[4].get_state());
+
+            for(auto &dead: dead_sockets)
+            {
+                users.erase(dead);
+            }
+
+            dead_sockets.clear();
+
             if (FD_ISSET(server_fd, &temp_fds))
             {
                 printf("Init!\n");
