@@ -1,10 +1,10 @@
 #include "tx.h"
 #include "Constants.h"
-#include "sendRecv.h"
 #include "Output.h"
 #include <cstring>
 #include <unistd.h>
 #include <stdio.h>
+#include <sys/socket.h>
 
 int outgoing(int sock_fd, bool tx_user_message, char *name, int log_fd, bool & entering_name, char * partner_name)
 {
@@ -13,20 +13,19 @@ int outgoing(int sock_fd, bool tx_user_message, char *name, int log_fd, bool & e
 	int ret;
 
 		//Read message from STDIN and write to message buffer
-		receive(STDIN_FILENO, message, sizeof message);
-		
+		read(STDIN_FILENO, message, sizeof message);
 		
 		//Checking if name has not been sent, means this time name has been sent
 		if (name[0] == 0)
 		{
-			strncpy(name, message, strlen(message));
+			strncpy(name, message, strlen(message) - 1);
 			ret =  RX_NEXT;
 		}
 
 		else if (entering_name)
 		{
 			memset(partner_name, 0, sizeof partner_name);
-			strncpy(partner_name, message, strlen(message));
+			strncpy(partner_name, message, strlen(message) - 1);
 			entering_name = false;
 			ret =  RX_NEXT;
 		}
@@ -45,7 +44,7 @@ int outgoing(int sock_fd, bool tx_user_message, char *name, int log_fd, bool & e
 		}
 
 		//Send contents of message buffer to server
-		send_buffer(sock_fd, message, strlen(message), true);
+		send(sock_fd, message, strlen(message), 0);
 
 		return ret;
 }

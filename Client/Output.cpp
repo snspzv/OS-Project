@@ -10,15 +10,14 @@
 
 void write_to_log(char* message, int message_fd, char* name, bool from_self)
 {
-	char tabs[7];	//Character array for tabs
-	int output_i(0), name_i(0), message_i(0); //ints for output, name, and message
-	int chars = (strlen(message) + strlen(name) + 2); //total length of message and name + 2
-	int lines = chars / CHAR_LIMIT; //number of lines the message will output in
-	char output[50]; //the character array which is outputted to the log file
+	char tabs[7];
+	int output_i(0), name_i(0), message_i(0);
+	int chars = (strlen(message) + strlen(name) + 2);
+	int lines = chars / CHAR_LIMIT;
+	char output[50];
 
 	memset(tabs, '\t', sizeof tabs);
 
-	//A loop to do all logging for all lines to be outputted
 	while (lines >= 0)
 	{
 		//clear output buffer
@@ -52,12 +51,12 @@ void write_to_log(char* message, int message_fd, char* name, bool from_self)
 				output[output_i] = ' ';
 			}
 
-			//normal case - copy char from name buffer to output buffer
+			//normal case - copy char from name buffer to output buffer 
 			else
 			{
 				output[output_i] = name[name_i];
 			}
-
+			
 			output_i++;
 			name_i++;
 		}
@@ -84,11 +83,11 @@ void write_to_log(char* message, int message_fd, char* name, bool from_self)
 		}
 
 		lines--;
-
+		
 
 	}
-
-
+		
+	
 	//output not written on last line because less than 49 characters
 	if (output_i != 0)
 	{

@@ -7,8 +7,15 @@
 #include <thread>
 #include <sys/time.h>
 #include <sys/select.h>
-#include "handleConnections.h"
 #include "Constants.h"
+#include "wait.h"
+#include <map>
+#include <iterator>
+#include <algorithm>
+#include "User.h"
+#include <mutex>
+std::map<int, User> users;
+
 
 int main(int argc, char const *argv[])
 {
@@ -26,6 +33,7 @@ int main(int argc, char const *argv[])
         perror("socket failed");
         exit(EXIT_FAILURE);
     }
+
 
     // SOL_SOCKET - socket at API level
     // SO_REUSEADDR and SO_REUSEPORT - allows address and port to have multiple sockets
@@ -57,27 +65,50 @@ int main(int argc, char const *argv[])
     std::thread threadArray[BACKLOG + 5];
     int i = 0;
 
+    fd_set fds;
+    //struct timespec tv;
+    //std::vector<int> fds_vect = { server_fd };
+    //int max_fd = init_fd_set(fds_vect, SELECT_TIMEOUT_S, SELECT_TIMEOUT_NS, fds, tv);
+    FD_ZERO(&fds);
+    FD_SET(server_fd, &fds);
+    int max_fd = server_fd;
+    int ready_count;
+
     while (1)
     {
-        if ((new_socket = accept(server_fd, (struct sockaddr*) & address, (socklen_t*) & addrlen)) < 0)
+        fd_set temp_fds = fds;
+        ready_count = pselect(max_fd + 1, &temp_fds, NULL, NULL, NULL, NULL);
+        printf("Ready count: %d\n", ready_count);
+        if (ready_count > 0)
         {
-            perror("accept");
-            exit(EXIT_FAILURE);
-        }
-
-        //Creates a new thread for each new client that connects to the server 
-        threadArray[i] = std::thread(manageConnection, &new_socket);
-        i++;
-        if (i >= 50)
-        {
-            i = 0;
-            while (i < 50)
+            for (auto &connection : users)
             {
-                threadArray[i].join();
+                printf("\tConnection fd: %d\n", connection.first);
+                if (FD_ISSET(connection.first, &temp_fds))
+                {
+                    printf("\t\tBefore\n");
+                    connection.second.handleIncoming();
+                    printf("\t\tAfter\n");
+                    ready_count--;
+                    //printf("After exit state1 of %d: %d\n",connection.first, connection.second.get_state());
+                }
+                
+                if (ready_count == 0)
+                    break;
             }
-            i = 0;
+            //printf("After exit state2: %d\n", users[4].get_state());
+            if (FD_ISSET(server_fd, &temp_fds))
+            {
+                printf("Init!\n");
+                new_socket = accept(server_fd, (struct sockaddr*) & address, (socklen_t*)&addrlen);
+                users[new_socket] = User(new_socket);
+                users[new_socket].handleIncoming();
+                FD_SET(new_socket, &fds);
+                max_fd = new_socket;
+                ready_count--;
+            }
+            
         }
-
     }
     return 0;
 }
