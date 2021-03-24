@@ -10,10 +10,9 @@
 #include <netinet/in.h>
 #include <vector>
 #include <sys/select.h>
-#include <mutex>
-#include "wait.h"
 #include "clientStates.h"
 #include <map>
+#include <sys/ioctl.h>
 
 extern std::map<int, User> users;
 
@@ -65,14 +64,21 @@ int User::get_state()
 bool User::handleIncoming()
 {
 	char messageOut[BUFFER_SIZE] = {};
-	char messageIn[BUFFER_SIZE] = {};
 	bool socket_connected = true;
-	recv(_uid, messageIn, BUFFER_SIZE, MSG_PEEK | MSG_DONTWAIT);
-
-	if ((strlen(messageIn) == 0) && (_state != START))
+	int bytes_available = 0;
+	int bytes = ioctl(_uid, FIONREAD, &bytes_available);
+	bytes_available++;
+	char messageIn[bytes_available] = {};
+	printf("Bytes: %d\tBytes available: %d\n", bytes, bytes_available);
+	if(bytes_available == 1 && _state != START)
 	{
 		_state = DISCONNECTED;
 		socket_connected = false;
+	}
+
+	else
+	{
+		recv(_uid, messageIn, bytes_available, MSG_DONTWAIT);
 	}
 
 	switch (_state)
@@ -88,10 +94,11 @@ bool User::handleIncoming()
 		
 		case ASKING_FOR_USERNAME:
 		{
-			read(_uid, messageIn, BUFFER_SIZE);
-			char poten_name[BUFFER_SIZE];
-			memset(poten_name, 0, BUFFER_SIZE);
+			//read(_uid, messageIn, BUFFER_SIZE);
+			char poten_name[bytes_available];
+			memset(poten_name, 0, bytes_available);
 			strncpy(poten_name, messageIn, strlen(messageIn));
+			printf("\tName: %s\n", poten_name);
 			bool unique_name = true;
 			for (auto& user : users)
 			{
@@ -129,8 +136,8 @@ bool User::handleIncoming()
 		
 		case ASKING_FOR_CONVO_PARTNER:
 		{
-			read(_uid, messageIn, BUFFER_SIZE);
-			char requested_name[BUFFER_SIZE];
+			//read(_uid, messageIn, BUFFER_SIZE);
+			char requested_name[bytes_available];
 			memset(requested_name, 0, sizeof requested_name);
 			strncpy(requested_name, messageIn, strlen(messageIn));
 			bool partner_found = false;
@@ -181,7 +188,7 @@ bool User::handleIncoming()
 		
 		case PARTNER_REQUESTING:
 		{
-			read(_uid, messageIn, BUFFER_SIZE);
+			//read(_uid, messageIn, BUFFER_SIZE);
 			if (messageIn[0] == 'y' || messageIn[0] == 'Y')
 			{
 				messageOut[0] = CONN_MADE;
@@ -209,7 +216,7 @@ bool User::handleIncoming()
 		case STARTING_P2P:
 		{
 			//write user's message into message buffer
-			read(_uid, messageIn, BUFFER_SIZE);
+			//read(_uid, messageIn, BUFFER_SIZE);
 
 			//Send contents of message buffer to partner
 			send(_connected_uid, messageIn, strlen(messageIn), 0);
