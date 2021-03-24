@@ -19,11 +19,11 @@ std::map<int, User> users;
 
 int main(int argc, char const *argv[])
 {
-    int server_fd, new_socket, valread;
-    struct sockaddr_in address;
-    int opt = 1;
-    int addrlen = sizeof(address);
-    char buffer[1024] = {0};
+    int server_fd, new_socket, valread; //Integers representing the server file descriptor, and a new socket
+    struct sockaddr_in address; //Represents the server address and port address
+    int opt = 1; //An integer used when setting the socket options
+    int addrlen = sizeof(address); //An integer for the size of the address
+    char buffer[1024] = {0}; //character array of all zeros the size of a socket buffer
     fd_set readfds; // set of socket descriptors
 
 
