@@ -61,19 +61,13 @@ int main(int argc, char const *argv[])
 
 
     //Open log file in write only mode, truncate to 0 bytes if exists, and create if it does not exist
-    message_fd = open("./messages.log", O_WRONLY | O_TRUNC | O_CREAT);
-    //strcpy(message, "This is a test message of  over 50 characters vsdakn vsdakjn testing testing teting akndf dsk dlk  geskklsdf lkfads lkndsf;akn fs kldsfn nkl");
-    //strcpy(name, "SAM");
-    //system("cmd.exe /c start cmd.exe /c wsl.exe tail -F messages.log");
-    //write_to_log(message, message_fd, name, true);
-    //write_to_log(message, message_fd, name, false);
-    //write_to_log(message, message_fd, name, true);
-    //Wait until server gives ok on username
+    message_fd = open("./messages.log", O_WRONLY | O_TRUNC | O_CREAT, 0666);
     int next = RX_NEXT;
     bool tx_user_message = false;
     bool entering_name = false;
     memset(name, 0, BUFFER_SIZE);
     system("clear");
+
     while (true)
     {
         while (next == RX_NEXT)
@@ -105,8 +99,10 @@ int main(int argc, char const *argv[])
             }
             system("clear");
         }
-        
+    
     }
+    
+    
     
     return 0;
 }

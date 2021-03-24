@@ -101,28 +101,21 @@ int incoming(int sock_fd, char partner_name[], int log_fd, bool & tx_user_messag
 				print_sm(PARTNER_FOUND, partner_name);
 				return RX_NEXT;
 
-			//case PARTNER_DISCONNECT:
+			case PARTNER_DISCONNECT:
+				print_sm(PARTNER_DISCONNECT, partner_name);
+				system("sleep 1s && clear");
+				//memset(partner_name, 0, sizeof partner_name);
+				return EITHER_NEXT;
+
+			default:	
+				tx_user_message = true;
+				write_to_log(message, log_fd, partner_name, true);
+				fdatasync(log_fd);
+				return EITHER_NEXT;
 
 		}
-
 	}
 
-	//User message
-	//else if ((message[strlen(message) - 1]) == 'U')
-	//{
-		//printf("TEST\n");
-		//Read message from sock_fd and write to message buffer
-		//receive(sock_fd, message, sizeof message);
-		tx_user_message = true;
-		//Output to log file
-		write_to_log(message, log_fd, partner_name, true);
-
-		//flush buffer associated with message_fd to ensure that contents are immediately written to messages.log
-		fdatasync(log_fd);
-
-		return EITHER_NEXT;
-	//}
-
-
-	//return 0;
+	else
+		return -1;
 }
