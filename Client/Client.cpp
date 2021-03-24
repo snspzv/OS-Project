@@ -78,7 +78,7 @@ int main(int argc, char const *argv[])
         while (next == TX_NEXT)
         {
             next = outgoing(sock_fd, tx_user_message, name, entering_name, partner_name);
-            //system("clear");
+            system("clear");
         }
 
         if(next == EITHER_NEXT)
@@ -97,7 +97,7 @@ int main(int argc, char const *argv[])
             {
                 next = RX_NEXT;
             }
-            //system("clear");
+            system("clear");
         }
     
     }
