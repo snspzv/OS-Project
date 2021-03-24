@@ -43,8 +43,8 @@ int incoming(int sock_fd, char partner_name[], bool & tx_user_message, bool & en
 	memset(message, 0, sizeof message);
 	extern const char servMessages[20][BUFFER_SIZE];
 	char log_file[BUFFER_SIZE] = "messages";
-	char command[BUFFER_SIZE] = "cmd.exe /c start cmd.exe /c wsl.exe tail -F ";
-	
+	//char command[BUFFER_SIZE] = "cmd.exe /c start cmd.exe /c wsl.exe tail -F ";
+	char command[BUFFER_SIZE] = "xterm -geometry 110 -e tail -F ";
 	tx_user_message = false;
 	//Server Message
 	if (read(sock_fd, message, BUFFER_SIZE))
@@ -88,8 +88,10 @@ int incoming(int sock_fd, char partner_name[], bool & tx_user_message, bool & en
 				print_sm(CONN_MADE);
 				strncat(log_file, partner_name, strlen(partner_name));
 				strcat(log_file, ".log");
+				log_fd = open(log_file, O_WRONLY | O_CREAT, 0777);
+				strcat(log_file, " &");
 				strncat(command, log_file, strlen(log_file));
-				log_fd = open(log_file, O_WRONLY | O_CREAT, 0600);
+				//printf("%s\n", command);
 				system(command);
 				system("sleep 1s && clear");
 				tx_user_message = true;

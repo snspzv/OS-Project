@@ -37,7 +37,6 @@ void write_to_log(char* message, int message_fd, char* name, bool from_self)
 			{
 				output[output_i] = '\n';
 				output_i = 0;
-				//lseek(message_fd, -4, SEEK_CUR);
 				break;
 			}
 
@@ -72,7 +71,6 @@ void write_to_log(char* message, int message_fd, char* name, bool from_self)
 				write(message_fd, output, strlen(output));
 				fdatasync(message_fd);
 				memset(output, 0, sizeof message);
-				lseek(message_fd, -4, SEEK_CUR);
 				break;
 			}
 
@@ -95,7 +93,6 @@ void write_to_log(char* message, int message_fd, char* name, bool from_self)
 		write(message_fd, output, strlen(output));
 		fdatasync(message_fd);
 		memset(output, 0, sizeof message);
-		//lseek(message_fd, -4, SEEK_CUR);
 	}
 
 }
