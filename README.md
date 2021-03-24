@@ -1,7 +1,5 @@
 # OS-Project
 
-Server compilation commands:
-	g++ -std=c++14 *.cpp -o server 
+Server compilation commands: `g++ -std=c++14 *.cpp -o server` 
 	
-Client compilation commands:
-	g++ -std=c++14 *.cpp  -o client 
+Client compilation commands: `g++ -std=c++14 *.cpp  -o client` 
