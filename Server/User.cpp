@@ -91,7 +91,7 @@ bool User::handleIncoming()
 			read(_uid, messageIn, BUFFER_SIZE);
 			char poten_name[BUFFER_SIZE];
 			memset(poten_name, 0, BUFFER_SIZE);
-			strncpy(poten_name, messageIn, strlen(messageIn) -1);
+			strncpy(poten_name, messageIn, strlen(messageIn));
 			bool unique_name = true;
 			for (auto& user : users)
 			{
@@ -132,7 +132,7 @@ bool User::handleIncoming()
 			read(_uid, messageIn, BUFFER_SIZE);
 			char requested_name[BUFFER_SIZE];
 			memset(requested_name, 0, sizeof requested_name);
-			strncpy(requested_name, messageIn, strlen(messageIn) - 1);
+			strncpy(requested_name, messageIn, strlen(messageIn));
 			bool partner_found = false;
 
 			for (auto& user : users)

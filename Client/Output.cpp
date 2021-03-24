@@ -7,12 +7,14 @@
 #include <sys/types.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string>
 
-void write_to_log(char* message, int message_fd, char* name, bool from_self)
+void write_to_log(std::string message, int message_fd, char* name, bool from_self)
 {
+	//char message[smessage.length()] = smessage.c_str();
 	char tabs[7];
 	int output_i(0), name_i(0), message_i(0);
-	int chars = (strlen(message) + strlen(name) + 2);
+	int chars = (message.length() + strlen(name) + 2);
 	int lines = chars / CHAR_LIMIT;
 	char output[50];
 
@@ -61,7 +63,7 @@ void write_to_log(char* message, int message_fd, char* name, bool from_self)
 		}
 
 		//copy message to output buffer
-		while ((message_i < strlen(message)) && (name_i == strlen(name) + 2))
+		while ((message_i < message.length()) && (name_i == strlen(name) + 2))
 		{
 			//insert newline if output buffer is on last character and start loop over
 			if (output_i == 49)
