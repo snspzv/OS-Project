@@ -94,11 +94,8 @@ bool User::handleIncoming()
 		
 		case ASKING_FOR_USERNAME:
 		{
-			//read(_uid, messageIn, BUFFER_SIZE);
-			char poten_name[bytes_available];
-			memset(poten_name, 0, bytes_available);
+			char poten_name[bytes_available] = {};
 			strncpy(poten_name, messageIn, strlen(messageIn));
-			printf("\tName: %s\n", poten_name);
 			bool unique_name = true;
 			for (auto& user : users)
 			{
@@ -136,7 +133,6 @@ bool User::handleIncoming()
 		
 		case ASKING_FOR_CONVO_PARTNER:
 		{
-			//read(_uid, messageIn, BUFFER_SIZE);
 			char requested_name[bytes_available];
 			memset(requested_name, 0, sizeof requested_name);
 			strncpy(requested_name, messageIn, strlen(messageIn));
@@ -189,7 +185,7 @@ bool User::handleIncoming()
 		case PARTNER_REQUESTING:
 		{
 			//read(_uid, messageIn, BUFFER_SIZE);
-			if (messageIn[0] == 'y' || messageIn[0] == 'Y')
+			if ((messageIn[0] == 'y' || messageIn[0] == 'Y') && (strlen(messageIn) == 1))
 			{
 				messageOut[0] = CONN_MADE;
 				send(_uid, messageOut, strlen(messageOut), 0);
@@ -199,16 +195,22 @@ bool User::handleIncoming()
 				_state = STARTING_P2P;
 			}
 
-			else if (messageIn[0] == 'n' || messageIn[0] == 'N')
+			else if ((messageIn[0] == 'n' || messageIn[0] == 'N') && (strlen(messageIn) == 1))
 			{
 				messageOut[0] = CONN_DENIED;
-				send(_connected_uid, messageOut, strlen(messageOut), 0);
+				send(_request_uid, messageOut, strlen(messageOut), 0);
 				sleep(1);
 				messageOut[0] = GET_PARTNER;
-				send(_connected_uid, messageOut, strlen(messageOut), 0);
-				users[_connected_uid].set_state(ASKING_FOR_CONVO_PARTNER);
+				send(_request_uid, messageOut, strlen(messageOut), 0);
+				users[_request_uid].set_state(ASKING_FOR_CONVO_PARTNER);
 				send(_uid, messageOut, strlen(messageOut), 0);
 				_state = ASKING_FOR_CONVO_PARTNER;
+			}
+
+			else
+			{
+				messageOut[0] = BAD_RESPONSE;
+				send(_uid, messageOut, strlen(messageOut), 0);
 			}
 			break;
 		}
@@ -224,6 +226,7 @@ bool User::handleIncoming()
 		}
 			
 		case DISCONNECTED:
+			
 			//Is currently in conversation
 			if (_connected_uid != 0)
 			{
@@ -234,6 +237,20 @@ bool User::handleIncoming()
 				sleep(1);
 				send(_connected_uid, messageOut, strlen(messageOut), 0);
 			}
+
+			//Just been requested for conversation
+			else if(_request_uid != 0)
+			{
+				messageOut[0] = PARTNER_DISCONNECT;
+				users[_request_uid].set_state(ASKING_FOR_CONVO_PARTNER);
+				send(_request_uid, messageOut, strlen(messageOut), 0);
+				messageOut[0] = GET_PARTNER;
+				sleep(1);
+				send(_request_uid, messageOut, strlen(messageOut), 0);
+			}
+
+			_request_uid = 0;
+			_connected_uid = 0;
 	}
 
 	return socket_connected;
