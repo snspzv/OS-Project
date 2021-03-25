@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include<sys/select.h>
+#include <string>
 
 class User {
 
@@ -9,7 +10,6 @@ class User {
 		int _connected_uid;
 		char _name[1024];
 		int _state;
-		int _request_uid;
 
 	public:
 		User();
@@ -21,4 +21,5 @@ class User {
 		int get_state();
 		void set_state(int state);
 		bool handleIncoming();
+		void send_packet(int code_mask, std::string additional_info, bool to_self);
 };
