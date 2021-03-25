@@ -38,7 +38,7 @@ int main(int argc, char const *argv[])
     // SOL_SOCKET - socket at API level
     // SO_REUSEADDR and SO_REUSEPORT - allows address and port to have multiple sockets
     // optval - enable given options
-    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)))
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT |SO_KEEPALIVE, &opt, sizeof(opt)) < 0)
     {
         perror("setsockopt");
         exit(EXIT_FAILURE);
@@ -79,6 +79,7 @@ int main(int argc, char const *argv[])
         fd_set temp_fds = fds;
         std::vector<int> dead_sockets;
         ready_count = pselect(max_fd + 1, &temp_fds, NULL, NULL, NULL, NULL);
+        printf("Ready: %d\n", ready_count);
         if (ready_count > 0)
         {
             for (auto &connection : users)
@@ -99,8 +100,12 @@ int main(int argc, char const *argv[])
             for(auto &dead: dead_sockets)
             {
                 users.erase(dead);
+                FD_CLR(dead, &fds);
+                //Lazy, find better way
+                if(max_fd == dead);
+                    max_fd--;
             }
-
+            
             dead_sockets.clear();
 
             if (FD_ISSET(server_fd, &temp_fds))
@@ -109,10 +114,12 @@ int main(int argc, char const *argv[])
                 users[new_socket] = User(new_socket);
                 users[new_socket].handleIncoming();
                 FD_SET(new_socket, &fds);
-                max_fd = new_socket;
+                if(max_fd < new_socket)
+                    max_fd = new_socket;
                 ready_count--;
             }
             
+            ready_count = 0;
         }
     }
     return 0;
