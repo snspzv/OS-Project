@@ -13,96 +13,66 @@
 #include "Output.h"
 #include "rx.h"
 #include "tx.h"
+#include "cli_sock.h"
 
+std::string partner_name;
+std::string name;
 
 int main(int argc, char const *argv[])
 {
-    
-    char message[1024];
-    char name[1024];
-    char partner_name[1024];
-    char server_message[1024];
-    int sock_fd = 0, valread, message_fd;
-    struct sockaddr_in serv_addr;
-    char buffer[1024] = {0};
-    int max_fd;
+    //***************************
+    //Try to connect with server
+    //***************************
+    int sock_fd;
+    while(true)
+    {
+        if((sock_fd =  sock_init()) == -1)
+        {
+            std::string retry;
+            std::cout << "Retry connecting to the server? (y/n): " << std::flush;
+            std::cin >> retry;
+            if((retry.length() == 1) && (retry[0] == 'n'))
+            {
+                return sock_fd;
+            }
+        }
+
+        else
+            break;
+    }
+
+
     fd_set fds;
     fd_set temp_fds;
-    int status;
-    bool no_partner = true;
-
-    if ((sock_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-    {
-        printf("\n Socket creation error \n");
-        return -1;
-    }
-
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(PORT);
-
-    // Convert IPv4 and IPv6 addresses from text to binary form
-    if(inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr)<=0)
-    {
-        printf("\nInvalid address/ Address not supported \n");
-        return -1;
-    }
-
-    if (connect(sock_fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
-    {
-        printf("\nConnection Failed \n");
-        return -1;
-    }
-
     FD_ZERO(&fds);
     FD_SET(sock_fd, &fds);
     FD_SET(STDIN_FILENO, &fds);
-
-    max_fd = sock_fd;
-
-    
-    //Open log file in write only mode, truncate to 0 bytes if exists, and create if it does not exist
-    //message_fd = open("./messages.log", O_WRONLY | O_TRUNC | O_CREAT, 0666);
+    int max_fd = sock_fd;
     int next = RX_NEXT;
     bool tx_user_message = false;
     bool entering_name = false;
-    memset(name, 0, BUFFER_SIZE);
-    system("clear");
+    std::cout << CLR_SCR;
 
+    //*************************************************
+    //Main loop, waits on STDIN and socket with server
+    //*************************************************
     while (true)
     {
-        while (next == RX_NEXT)
+        temp_fds = fds;
+        int status = pselect(max_fd + 1, &temp_fds, NULL, NULL, NULL, NULL);
+        std::cout << CLR_SCR;
+
+        //User input
+        if (FD_ISSET(STDIN_FILENO, &temp_fds))
         {
-            next = incoming(sock_fd, partner_name, tx_user_message, entering_name);
+            outgoing(sock_fd, tx_user_message, entering_name);
         }
 
-        while (next == TX_NEXT)
+        //Incoming message
+        else if (FD_ISSET(sock_fd, &temp_fds))
         {
-            next = outgoing(sock_fd, tx_user_message, name, entering_name, partner_name);
-            system("clear");
+            incoming(sock_fd, tx_user_message, entering_name);
         }
-
-        if(next == EITHER_NEXT)
-        {
-            temp_fds = fds;
-            status = pselect(max_fd + 1, &temp_fds, NULL, NULL, NULL, NULL);
-        
-            //User input
-            if (FD_ISSET(STDIN_FILENO, &temp_fds))
-            {
-                next = TX_NEXT;
-            }
-
-            //Incoming message
-            else if (FD_ISSET(sock_fd, &temp_fds))
-            {
-                next = RX_NEXT;
-            }
-            system("clear");
-        }
-    
     }
-    
-    
-    
     return 0;
 }

@@ -1,0 +1,9 @@
+#pragma once
+
+#define START 0
+#define ASKING_FOR_USERNAME 1
+#define ASKING_FOR_CONVO_PARTNER 2
+#define PARTNER_REQUESTED 3
+#define PARTNER_REQUESTING 4
+#define STARTING_P2P 5
+#define DISCONNECTED 6

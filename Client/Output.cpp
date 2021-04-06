@@ -8,93 +8,133 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string>
+#include <fstream>
+#include <iomanip>
+extern std::string log_file;
 
-void write_to_log(std::string message, int message_fd, char* name, bool from_self)
+void write_to_log(std::string message, int message_fd, std::string name, bool from_self)
 {
 	//char message[smessage.length()] = smessage.c_str();
-	char tabs[7];
+	std::string tabs = "\t\t\t\t\t\t";
 	int output_i(0), name_i(0), message_i(0);
-	int chars = (message.length() + strlen(name) + 2);
+	int chars = (message.length() + name.length() + 2);
 	int lines = chars / CHAR_LIMIT;
-	char output[50];
+	std::fstream fs;
+	fs.open(log_file, std::fstream::app | std::fstream::out);
+	//char output[50];
+	//Message contents, name, space and colon, newlines
+	//fs.flags(std::ios::left);
 
-	memset(tabs, '\t', sizeof tabs);
+	message.reserve(message.length() + name.length() + lines + 2);
+	message.insert(0, name + ": ");
 
-	while (lines >= 0)
+	if(from_self)
 	{
-		//clear output buffer
-		memset(output, 0, sizeof output);
-
-		//Tab 7 times if own message
-		if (from_self)
+		message.reserve(message.length() + (tabs.length() * lines));
+		while(lines > 0)
 		{
-			write(message_fd, tabs, strlen(tabs));
+			message.insert(CHAR_LIMIT * lines - 1,  "\n" + tabs);
+			lines--;
 		}
+		message.insert(0, tabs);
+	}
 
-		//copy name to output buffer
-		while (name_i < (strlen(name) + 2))
+	else
+	{
+		while(lines > 0)
 		{
-			//insert newline if output buffer is on last character and start loop over
-			if (output_i == 49)
-			{
-				output[output_i] = '\n';
-				output_i = 0;
-				break;
-			}
+			message.insert(CHAR_LIMIT * lines, 1, '\n');
+			lines--;
+		}
+		
+		//fs.flags(std::ios::left);
+	}
 
-			else if (output_i == strlen(name))
-			{
-				output[output_i] = ':';
-			}
+	fs << std::left << message << std::endl;
 
-			else if (output_i == (strlen(name) + 1))
-			{
-				output[output_i] = ' ';
-			}
 
-			//normal case - copy char from name buffer to output buffer 
-			else
-			{
-				output[output_i] = name[name_i];
-			}
+	// fs << name + ": " << message << std::endl;
+
+	fs.close();
+	// while (lines >= 0)
+	// {
+	// 	//clear output buffer
+	// 	// memset(output, 0, sizeof output);
+
+	// 	//Tab 7 times if own message
+	// 	if (from_self)
+	// 	{
+	// 		output.append(tabs); 
+	// 		// write(message_fd, tabs, strlen(tabs));
+	// 	}
+
+	// 	//copy name to output buffer
+	// 	while (name_i < (name.length() + 2))
+	// 	{
+	// 		//insert newline if output buffer is on last character and start loop over
+	// 		if (output_i == 49)
+	// 		{
+	// 			output[output_i] = '\n';
+	// 			output_i = 0;
+	// 			break;
+	// 		}
+
+	// 		else if (output_i == name.length())
+	// 		{
+	// 			output[output_i] = ':';
+	// 		}
+
+	// 		else if (output_i == (name.length() + 1))
+	// 		{
+	// 			output[output_i] = ' ';
+	// 		}
+
+	// 		//normal case - copy char from name buffer to output buffer 
+	// 		else
+	// 		{
+	// 			output[output_i] = name[name_i];
+	// 		}
 			
-			output_i++;
-			name_i++;
-		}
+	// 		output_i++;
+	// 		name_i++;
+	// 	}
 
-		//copy message to output buffer
-		while ((message_i < message.length()) && (name_i == strlen(name) + 2))
-		{
-			//insert newline if output buffer is on last character and start loop over
-			if (output_i == 49)
-			{
-				output[output_i] = '\u000A';
-				output_i = 0;
-				write(message_fd, output, strlen(output));
-				fdatasync(message_fd);
-				memset(output, 0, sizeof message);
-				break;
-			}
+	// 	//copy message to output buffer
+	// 	while ((message_i < message.length()) && (name_i == name.length() + 2))
+	// 	{
+	// 		//insert newline if output buffer is on last character and start loop over
+	// 		if (output_i == 49)
+	// 		{
+	// 			output[output_i] = '\n';
+	// 			output_i = 0;
+	// 			// write(message_fd, output, strlen(output));
+	// 			// fdatasync(message_fd);
+	// 			// memset(output, 0, sizeof message);
+	// 			break;
+	// 		}
 
-			//normal case - copy char from message buffer to output buffer and increment both
-			output[output_i] = message[message_i];
-			output_i++;
-			message_i++;
-		}
+	// 		//normal case - copy char from message buffer to output buffer and increment both
+	// 		output[output_i] = message[message_i];
+	// 		output_i++;
+	// 		message_i++;
+	// 	}
 
-		lines--;
+	// 	lines--;
 		
 
-	}
+	// }
 		
 	
 	//output not written on last line because less than 49 characters
-	if (output_i != 0)
-	{
-		output[output_i] = '\u000A';
-		write(message_fd, output, strlen(output));
-		fdatasync(message_fd);
-		memset(output, 0, sizeof message);
-	}
-
+	// if (output_i != 0)
+	// {
+	// 	output[output_i] = '\u000A';
+	// 	write(message_fd, output, strlen(output));
+	// 	fdatasync(message_fd);
+	// 	memset(output, 0, sizeof message);
+	// }
+	// message.append("\n");
+	// write(message_fd, message.c_str(), message.length());
+	// fdatasync(message_fd);
 }
+

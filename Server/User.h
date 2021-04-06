@@ -21,5 +21,5 @@ class User {
 		int get_state();
 		void set_state(int state);
 		bool handleIncoming();
-		void send_packet(int code_mask, std::string additional_info, bool to_self);
+		void send_packet(uint16_t code_mask, std::string additional_info, bool to_self);
 };

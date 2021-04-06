@@ -7,9 +7,14 @@
 #include <sys/socket.h>
 #include <string>
 #include <iostream>
+#include <fstream>
 extern int log_fd;
-
-int outgoing(int sock_fd, bool tx_user_message, char *name, bool & entering_name, char * partner_name)
+extern std::string name;
+extern std::string partner_name;
+extern std::string log_file;
+extern std::string top;
+extern std::string bottom;
+int outgoing(int sock_fd, bool tx_user_message, bool & entering_name)
 {
 	//char message[1024];
 	//memset(message, 0, 1024);
@@ -20,25 +25,33 @@ int outgoing(int sock_fd, bool tx_user_message, char *name, bool & entering_name
 	//read(STDIN_FILENO, message, sizeof message);
 	
 	//Checking if name has not been sent, means this time name has been sent
-	if (name[0] == 0)
+	if (name.empty())
 	{
-		strncpy(name, message.c_str(), message.length());
-		printf("My name: %s with length of: %ld\n", name, strlen(name));
+		//strncpy(name, message.c_str(), message.length());
+		name = message;
 		ret =  RX_NEXT;
 	}
 
 	else if (entering_name)
 	{
-		memset(partner_name, 0, sizeof partner_name);
-		strncpy(partner_name, message.c_str(), message.length());
+		// memset(partner_name, 0, sizeof partner_name);
+		// strncpy(partner_name, message.c_str(), message.length());
+		partner_name = message;
 		entering_name = false;
 		ret =  RX_NEXT;
 	}
 
 	else if(tx_user_message)
 	{
-		//Write contents of message buffer to log
-		write_to_log(message.c_str(), log_fd, name, false);
+		write_to_log(message, log_fd, name, true);
+		// printf("\t\t\t\tTo %s\n-------------------------------------------------------------------------------------------\n", partner_name.c_str());
+		// system((std::string("tail -n 20 ") + log_file).c_str());
+		// printf("\n-------------------------------------------------------------------------------------------\n-> ");
+		// fflush(stdout);
+		std::fstream fs;
+		fs.open(log_file, std::fstream::in);
+		std::cout << top << fs.rdbuf() << bottom << std::flush;
+		fs.close();
 		ret = EITHER_NEXT;
 	}
 

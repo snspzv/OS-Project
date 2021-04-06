@@ -13,8 +13,8 @@
 #define USER_MESSAGE 1
 #define UNAME_REQUEST 2
 #define UNAME_TAKEN 4
-#define UNAME_VALID 8
-#define GET_PARTNER 16
+#define GET_PARTNER 8
+#define UNAME_VALID 16
 #define PARTNER_HAS_REQUESTED 32
 #define PARTNER_DNE 64
 #define CONN_MADE 128
