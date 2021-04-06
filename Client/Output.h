@@ -1,3 +1,3 @@
 #pragma once
-
-void write_to_log(char* message, int message_fd, char* name, bool from_self);
+#include <string>
+void write_to_log(std::string message, int message_fd, std::string name, bool from_self);
